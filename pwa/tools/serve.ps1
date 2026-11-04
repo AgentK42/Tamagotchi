@@ -11,7 +11,7 @@ Write-Host "Moro PWA läuft auf http://localhost:$Port/  (Strg+C beendet)"
 $types = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
   '.webmanifest' = 'application/manifest+json'; '.json' = 'application/json'; '.png' = 'image/png'; '.svg' = 'image/svg+xml'
-  '.md' = 'text/plain; charset=utf-8'
+  '.md' = 'text/plain; charset=utf-8'; '.woff2' = 'font/woff2'
 }
 
 while ($listener.IsListening) {

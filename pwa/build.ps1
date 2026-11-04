@@ -8,6 +8,11 @@ if (-not $c.Contains('const REAL_TIME = false;')) { throw 'REAL_TIME-Schalter in
 $c = $c.Replace('const REAL_TIME = false;', 'const REAL_TIME = true;')
 $c = $c.Replace('<meta name="claude:viewport-fit-sides" content="cover">', '')
 
+# Schriften lokal statt von Google laden (Datenschutz, offline beim ersten Start)
+$c = [regex]::Replace($c, '<link rel="preconnect" href="https://fonts\.(googleapis|gstatic)\.com"[^>]*>\s*', '')
+$c = [regex]::Replace($c, '<link rel="stylesheet" href="https://fonts\.googleapis\.com/[^"]*">', '<link rel="stylesheet" href="fonts/fonts.css">')
+if ($c -match 'fonts\.googleapis\.com|fonts\.gstatic\.com') { throw 'Es sind noch Google-Fonts-Verweise übrig' }
+
 # moro.html ist ein Artefakt ohne <html>/<head>/<body>: hier ein vollständiges Dokument daraus machen
 $titleEnd = $c.IndexOf('</title>') + 8
 $bodyStart = $c.IndexOf('<div class="wrap">')
