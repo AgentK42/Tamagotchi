@@ -40,7 +40,9 @@ Dann `http://localhost:8765/` im Browser öffnen. Service Worker funktionieren n
 
 ## Veröffentlichen
 
-Den Ordner `pwa/` auf einen beliebigen statischen Webspace mit **https** legen, zum Beispiel:
+Das Repository `AgentK42/Tamagotchi` veröffentlicht `pwa/` bei jedem Push auf `main` automatisch über GitHub Pages (Workflow `.github/workflows/pages.yml`) unter **https://agentk42.github.io/Tamagotchi/**. Einmalig muss im Repository unter Settings → Pages die Quelle „GitHub Actions“ gewählt sein.
+
+Alternativ geht jeder andere statische Webspace mit **https**, zum Beispiel:
 
 - **Netlify Drop:** Den Ordner `pwa` auf app.netlify.com/drop ziehen.
 - **GitHub Pages:** Den Inhalt von `pwa/` in ein Repository legen und Pages aktivieren.
