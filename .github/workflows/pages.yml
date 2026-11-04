@@ -23,7 +23,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Werkzeuge nicht mit veröffentlichen
         run: rm -rf pwa/tools pwa/build.ps1
       - uses: actions/configure-pages@v5
