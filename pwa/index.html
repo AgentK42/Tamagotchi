@@ -1,0 +1,1848 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D1220">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Moro">
+<meta name="description" content="Moro wächst mit deinem Training und überbrückt die ersten Wochen, in denen man noch keine Veränderung sieht.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Moro</title>
+<style>
+/* Ersatz für das Grundgerüst, das claude.ai beim Artefakt automatisch ergänzt */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); -webkit-text-size-adjust: 100%; }
+body { margin: 0; -webkit-tap-highlight-color: transparent; }
+img { max-width: 100%; }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: Tabs (Heute · Fortschritt · Verlauf · Sammlung), darunter die passenden Karten. Laufbahn-Motiv auf der Bühne.
+   Dunkel ist der Standard; nur eine ausdrückliche helle Einstellung (data-theme="light") schaltet auf hell. */
+:root {
+  --bg: #0D1220; --surface: #161D2E; --ink: #E7EBF5; --muted: #98A1B7; --line: #283149;
+  --accent: #7E98FF; --accent-ink: #0D1220; --accent-soft: #222D52; --gold: #F3C04A;
+  --stage: #1B2540; --lane: rgba(255,255,255,.09); --track: #222E4E;
+  --heat0: #1E2638; --heat1: #2B3B78; --heat2: #4964D8; --heat3: #8EA5FF;
+  --good: #4CC995; --warn: #E9A94A; --bad: #F07373;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #EDF1F7; --surface: #FFFFFF; --ink: #131A2C; --muted: #586179; --line: #D7DDE8;
+  --accent: #2F5BFF; --accent-ink: #FFFFFF; --accent-soft: #E3E9FF; --gold: #E9A912;
+  --stage: #DCE5F4; --lane: rgba(255,255,255,.75); --track: #C9D4E8;
+  --heat0: #E2E7F0; --heat1: #BCCBFF; --heat2: #7D97FF; --heat3: #2F5BFF;
+  --good: #16865B; --warn: #B26A00; --bad: #C93A3A;
+  --shadow: 0 1px 2px rgba(19,26,44,.06), 0 8px 24px rgba(19,26,44,.06);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 16px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Kopfzeile */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brand h1 { font-size: 30px; font-weight: 800; }
+.brand .tag { color: var(--muted); font-size: 13px; }
+.sim { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.simday { font-family: var(--f-mono); font-size: 13px; padding: 6px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover { border-color: var(--accent); }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: 100%; padding: 11px 14px; font-size: 15px; }
+.btn.primary:hover { filter: brightness(1.07); }
+.sample { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; }
+.sample strong { color: var(--ink); }
+
+/* Raster */
+.grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
+/* Tabs: jede Gruppe hat ihr eigenes Raster, Karten anderer Gruppen sind ausgeblendet */
+.grid[data-tab="heute"] { grid-template-areas: "pet quest" "pet log" "pet health"; }
+.grid[data-tab="fortschritt"] { grid-template-areas: "letter body" "tests records"; }
+.grid[data-tab="verlauf"] { grid-template-areas: "cal cal" "hist hist"; }
+.grid[data-tab="sammlung"] { grid-template-areas: "album album"; }
+.grid[data-tab="heute"] > .card:not(.pet, .quest, .log, .health),
+.grid[data-tab="fortschritt"] > .card:not(.letterc, .bodyc, .tests, .records),
+.grid[data-tab="verlauf"] > .card:not(.cal, .hist),
+.grid[data-tab="sammlung"] > .card:not(.album) { display: none; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.tabs button { position: relative; border: none; background: transparent; color: var(--muted); font: inherit; font-weight: 700; font-size: 14px; padding: 9px 6px; border-radius: 10px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabs .dot { position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); min-width: 0; display: grid; gap: 14px; }
+.pet { grid-area: pet; }
+.log { grid-area: log; } .bodyc { grid-area: body; } .cal { grid-area: cal; } .album { grid-area: album; } .hist { grid-area: hist; }
+.quest { grid-area: quest; } .health { grid-area: health; } .letterc { grid-area: letter; } .tests { grid-area: tests; } .records { grid-area: records; }
+
+/* Tagesquest */
+.quest-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.q-text { font-family: var(--f-display); font-weight: 700; font-size: 18px; line-height: 1.3; margin-top: 2px; }
+.q-state { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--heat0); color: var(--muted); white-space: nowrap; }
+.q-state.done { background: var(--good); color: var(--surface); }
+.q-state.due { background: var(--gold); color: #3A2A00; }
+/* Wasser, Schlaf, Schritte */
+.glasses { display: flex; flex-wrap: wrap; gap: 6px; }
+.glass { width: 26px; height: 32px; border: 2px solid var(--line); border-top: none; border-radius: 3px 3px 8px 8px; background: transparent; cursor: pointer; padding: 0; position: relative; }
+.glass.full { background: linear-gradient(180deg, transparent 25%, #7FC4FF 25%); border-color: #4C9BE0; }
+.glass.goal::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: -6px; height: 2px; background: var(--gold); border-radius: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: none; background: transparent; padding: 7px 14px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.steps-row { display: flex; gap: 8px; }
+.steps-row input, .test-form input { flex: 1 1 auto; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; font-family: var(--f-mono); font-size: 14px; }
+/* Wochenbrief */
+.paper { background: var(--stage); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; font-size: 14px; line-height: 1.55; }
+.paper p { margin: 0; }
+.paper .sign { font-family: var(--f-display); font-weight: 700; }
+.lstats { display: flex; gap: 16px; flex-wrap: wrap; }
+.lstats span { display: grid; font-size: 12px; color: var(--muted); }
+.lstats b { font-family: var(--f-mono); font-weight: 500; font-size: 16px; color: var(--ink); }
+.letter-card { text-align: left; justify-items: stretch; max-width: 460px; }
+.letter-card .btn.primary { justify-self: center; }
+/* Messwerte */
+.tests-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tbl-scroll { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr:first-child th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.tbl td { font-family: var(--f-mono); }
+.tbl small { display: block; font-family: var(--f-body); color: var(--muted); font-size: 11px; }
+.tbl .muted { color: var(--muted); font-family: var(--f-body); }
+.tbl .up { color: var(--good); font-weight: 700; } .tbl .down { color: var(--bad); }
+.test-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.test-form label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.test-form .btn { grid-column: 1 / -1; }
+/* Rekorde */
+.recs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.rec { background: var(--bg); border-radius: 12px; padding: 12px; display: grid; gap: 2px; }
+.rec b { font-family: var(--f-display); font-size: 22px; font-weight: 800; }
+.rec span { font-size: 12px; color: var(--muted); }
+/* Fundstücke zum An-/Ablegen, neues Ei, Konfetti */
+button.item { background: transparent; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+button.item.off { opacity: .55; }
+button.item.off i { background: var(--heat0); }
+.newegg { display: grid; gap: 8px; background: var(--accent-soft); border-radius: 12px; padding: 12px; font-size: 14px; }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; }
+@media (max-width: 860px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid[data-tab="heute"] { grid-template-areas: "pet" "quest" "log" "health"; }
+  .grid[data-tab="fortschritt"] { grid-template-areas: "letter" "body" "tests" "records"; }
+  .grid[data-tab="verlauf"] { grid-template-areas: "cal" "hist"; }
+  .grid[data-tab="sammlung"] { grid-template-areas: "album"; }
+}
+@media (max-width: 480px) { .tabs button { font-size: 13px; padding: 9px 2px; } }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.card h2 { font-size: 20px; font-weight: 700; }
+
+/* Haustier */
+.pet-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.name { font-family: var(--f-display); font-weight: 800; font-size: 26px; border: none; background: transparent; padding: 0 2px; width: 7.5ch; min-width: 0; border-bottom: 2px dashed transparent; }
+.name:hover, .name:focus { border-bottom-color: var(--line); outline: none; }
+.chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.chip.form { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.style-toggle { margin-left: auto; display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+.style-toggle button { border: none; background: transparent; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; cursor: pointer; color: var(--muted); }
+.style-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.stage { position: relative; border-radius: 14px; overflow: hidden; background: var(--stage); aspect-ratio: 4 / 3; max-width: 100%; display: grid; place-items: center; }
+.stage::after { /* Laufbahn */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
+  background: repeating-linear-gradient(180deg, var(--track) 0 18px, var(--lane) 18px 20px); z-index: 0; }
+.stage canvas { position: relative; z-index: 1; width: min(76%, 320px); aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges; margin-top: 2%; }
+/* Sprechblase über der Bühne, Spitze zeigt nach unten zur Figur */
+.mood { display: flex; gap: 8px; align-items: flex-end; margin-bottom: -4px; }
+.mood-pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg); white-space: nowrap; }
+.mood-pill.proud { color: var(--good); } .mood-pill.rest { color: var(--accent); } .mood-pill.restless { color: var(--warn); } .mood-pill.tired { color: var(--bad); } .mood-pill.pause, .mood-pill.new { color: var(--muted); } .mood-pill.ready { color: var(--ink); }
+.mood-text { position: relative; flex: 1 1 auto; min-width: 0; font-size: 13px; background: var(--stage); padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; }
+.mood-text::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: var(--stage); }
+
+.xp { display: grid; gap: 6px; }
+.xp-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.xp-row b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 999px; background: var(--heat0); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width .5s ease; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stat { display: grid; gap: 5px; }
+.stat .k { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+.stat .k b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat .k { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .stat .k { flex-direction: column; gap: 0; } }
+.stat .bar { height: 6px; }
+.stat.aus .bar > i { background: #2FA58E; } .stat.kra .bar > i { background: #E5663F; } .stat.bew .bar > i { background: #9067E6; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.streak b { color: var(--ink); }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.switch input { width: 34px; height: 20px; appearance: none; background: var(--heat0); border-radius: 999px; position: relative; cursor: pointer; border: 1px solid var(--line); margin: 0; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .2s; }
+.switch input:checked { background: var(--accent); border-color: var(--accent); }
+.switch input:checked::after { transform: translateX(14px); background: var(--accent-ink); }
+
+/* Formular */
+fieldset { border: none; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend, .lbl { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; width: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips input { position: absolute; opacity: 0; pointer-events: none; }
+.chips label { border: 1px solid var(--line); padding: 6px 11px; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.chips input:checked + label { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chips input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ints label { flex: 1 1 0; text-align: center; padding: 6px 4px; font-size: 13px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.preview { font-size: 13px; color: var(--muted); }
+.preview b { color: var(--ink); }
+
+/* Körper */
+.bodyc h2 { font-size: 22px; }
+.bodyc .txt { max-width: 62ch; }
+.fine { font-size: 12px; color: var(--muted); }
+.weekdots { display: flex; gap: 4px; flex-wrap: wrap; }
+.weekdots span { width: 18px; height: 6px; border-radius: 3px; background: var(--heat0); }
+.weekdots span.on { background: var(--accent); }
+.weekdots span.goal { outline: 1px dashed var(--muted); outline-offset: 1px; }
+
+/* Kalender */
+.cal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.heat-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 18px) 16px; grid-auto-columns: minmax(18px, 1fr); gap: 4px; min-width: max-content; }
+.heat .c { border-radius: 4px; background: var(--heat0); }
+.heat .c.l1 { background: var(--heat1); } .heat .c.l2 { background: var(--heat2); } .heat .c.l3 { background: var(--heat3); }
+.heat .c.fut { background: transparent; border: 1px dashed var(--line); }
+.heat .c.today { outline: 2px solid var(--ink); outline-offset: 1px; }
+.heat .wl { font-family: var(--f-mono); font-size: 10px; color: var(--muted); text-align: center; line-height: 16px; }
+.heat .wl.goal { color: var(--gold); font-weight: 700; }
+.legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Album */
+.stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.st { display: grid; gap: 4px; justify-items: center; text-align: center; font-size: 12px; }
+.st canvas { width: 100%; max-width: 72px; aspect-ratio: 1; image-rendering: pixelated; background: var(--stage); border-radius: 10px; }
+.st.locked canvas { filter: brightness(0) opacity(.18); }
+.st b { font-size: 12px; } .st span { color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
+.items { display: flex; flex-wrap: wrap; gap: 6px; }
+.item { font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
+.item i { width: 8px; height: 8px; border-radius: 2px; background: var(--gold); }
+.item.miss { border-style: dashed; color: var(--muted); }
+.item.miss i { background: var(--heat0); }
+.lines { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding-top: 8px; }
+.ln { position: relative; display: grid; gap: 2px; justify-items: center; text-align: center; padding: 10px 6px 8px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.ln canvas { width: 100%; max-width: 84px; aspect-ratio: 1; image-rendering: pixelated; }
+.ln b { font-size: 13px; }
+.ln span { font-size: 11px; color: var(--muted); }
+.ln.mine { border-color: var(--accent); background: var(--accent-soft); }
+.ln.other canvas { filter: grayscale(1) opacity(.4); }
+.ln em { position: absolute; top: -9px; font-style: normal; font-size: 10px; font-weight: 700; background: var(--accent); color: var(--accent-ink); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+
+/* Verlauf */
+.hist ul { list-style: none; padding: 0; margin: 0; display: grid; }
+.hist li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+.hist li:last-child { border-bottom: none; }
+.hist .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.hist .x { font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.hist .m { color: var(--muted); font-size: 13px; }
+.empty { color: var(--muted); font-size: 14px; }
+
+/* Toast + Entwicklung */
+.toasts { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; width: min(420px, calc(100% - 32px)); pointer-events: none; }
+.toast { background: var(--ink); color: var(--surface); padding: 10px 14px; border-radius: 12px; font-size: 14px; box-shadow: var(--shadow); animation: tin .25s ease; }
+@keyframes tin { from { transform: translateY(8px); opacity: 0; } }
+.evo { position: fixed; inset: 0; z-index: 40; background: rgba(13,18,32,.55); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.evo-card { background: var(--surface); border-radius: 20px; padding: 24px; max-width: 420px; width: 100%; display: grid; gap: 12px; text-align: center; justify-items: center; box-shadow: var(--shadow); animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+.evo-card canvas { width: 180px; aspect-ratio: 1; image-rendering: pixelated; background: var(--stage); border-radius: 16px; }
+.evo-card h2 { font-size: 26px; font-weight: 800; }
+.evo-card .btn.primary { width: auto; padding-inline: 28px; }
+@media (prefers-reduced-motion: reduce) { .toast, .evo-card { animation: none; } .bar > i { transition: none; } }
+/* Aufgeräumte Ansicht (#clean): ohne Prototyp-Steuerung und ohne doppelte Angaben */
+.clean .top, .clean #sampleNote, .clean #styleToggle, .clean .weekdots, .clean .ln em,
+.clean .cal .fine, .clean .album .fine, .clean .xp-row b { display: none; }
+.clean body, body.clean { padding-block: 16px 40px; }
+/* Handybreite: nichts abschneiden, Texte umbrechen statt überlaufen */
+@media (max-width: 480px) {
+  .ints label { flex: 0 0 auto; padding-inline: 10px; }
+  .heat { grid-template-rows: repeat(7, 14px) 14px; grid-auto-columns: minmax(14px, 1fr); gap: 3px; min-width: 0; }
+  .heat .wl { font-size: 9px; line-height: 14px; }
+  .stages { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 12px; }
+  .lines { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .ln b, .ln span, .st b { overflow-wrap: anywhere; }
+  .tbl { font-size: 12px; }
+  .tbl th, .tbl td { padding: 6px 3px; }
+  .tbl tr:first-child th { font-size: 10px; letter-spacing: .02em; }
+  .tbl th { width: 30%; overflow-wrap: anywhere; }
+  .tbl tr:first-child th { width: auto; overflow-wrap: normal; }
+  .test-form { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .glasses { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+  .glass { width: 100%; height: 30px; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Moro</h1>
+      <span class="tag">Trainingsbegleiter · Prototyp</span>
+    </div>
+    <div class="sim" aria-label="Zeitsteuerung des Prototyps">
+      <span class="simday" id="simDay">Tag 1 · Woche 1</span>
+      <button class="btn" id="nextDay" type="button">Tag weiter</button>
+      <button class="btn" id="nextWeek" type="button">Woche vorspulen</button>
+      <button class="btn" id="reset" type="button">Neu starten</button>
+    </div>
+  </header>
+  <p class="sample" id="sampleNote" hidden><strong>Beispieldaten:</strong> 2,5 Wochen Training sind vorgeladen. „Neu starten“ beginnt mit einem eigenen Ei.</p>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Bereiche">
+    <button type="button" role="tab" data-tab="heute" aria-selected="true">Heute</button>
+    <button type="button" role="tab" data-tab="fortschritt" aria-selected="false">Fortschritt</button>
+    <button type="button" role="tab" data-tab="verlauf" aria-selected="false">Verlauf</button>
+    <button type="button" role="tab" data-tab="sammlung" aria-selected="false">Sammlung</button>
+  </nav>
+  <main class="grid" id="main" data-tab="heute">
+    <section class="card pet" aria-label="Dein Begleiter">
+      <div class="pet-head">
+        <input class="name" id="petName" value="Moro" maxlength="12" aria-label="Name deines Begleiters">
+        <span class="chip" id="stageChip">Ei</span>
+        <span class="mood-pill" id="moodPill">Wartet</span>
+        <span class="chip form" id="formChip" hidden></span>
+        <div class="style-toggle" id="styleToggle" role="group" aria-label="Grafikstil">
+          <button type="button" data-style="hi" aria-pressed="true">Highres</button>
+          <button type="button" data-style="retro" aria-pressed="false">Retro</button>
+        </div>
+      </div>
+      <div class="mood">
+        <p class="mood-text" id="moodText"></p>
+      </div>
+      <div class="stage">
+        <canvas id="petCanvas" width="40" height="40" aria-label="Pixel-Darstellung deines Begleiters" role="img"></canvas>
+      </div>
+      <div class="xp">
+        <div class="xp-row"><span id="xpLabel">Erfahrung</span><b id="xpValue">0 XP</b></div>
+        <div class="bar"><i id="xpBar"></i></div>
+      </div>
+      <div class="stats">
+        <div class="stat aus"><div class="k">Ausdauer <b id="sAus">1</b></div><div class="bar"><i id="bAus"></i></div></div>
+        <div class="stat kra"><div class="k">Kraft <b id="sKra">1</b></div><div class="bar"><i id="bKra"></i></div></div>
+        <div class="stat bew"><div class="k">Beweglichkeit <b id="sBew">1</b></div><div class="bar"><i id="bBew"></i></div></div>
+      </div>
+      <div class="foot">
+        <span class="streak" id="streak"></span>
+        <label class="switch"><input type="checkbox" id="pause"> Pause (krank, Urlaub)</label>
+      </div>
+      <div class="newegg" id="newEggBox" hidden>
+        <p><b id="newEggTitle">Geschafft!</b> <span id="newEggText"></span></p>
+        <button class="btn" id="newEgg" type="button">Neues Ei ausbrüten</button>
+      </div>
+    </section>
+
+    <section class="card quest" aria-label="Tagesquest">
+      <div class="quest-row">
+        <div><p class="eyebrow">Tagesquest</p><p class="q-text" id="questText"></p></div>
+        <span class="q-state" id="questState">offen</span>
+      </div>
+      <p class="fine" id="questHint">Wird automatisch abgehakt · +20 XP und vielleicht ein Fundstück</p>
+    </section>
+
+    <section class="card health" aria-label="Wasser, Schlaf und Schritte">
+      <div><p class="eyebrow">Heute für dich</p><h2>Wasser, Schlaf, Schritte</h2></div>
+      <div>
+        <p class="lbl">Wasser <output id="waterOut">0 / 6 Gläser</output></p>
+        <div class="glasses" id="glasses" role="group" aria-label="Gläser Wasser heute"></div>
+      </div>
+      <div>
+        <p class="lbl">Wie hast du geschlafen?</p>
+        <div class="seg" id="sleepSeg" role="group" aria-label="Schlafqualität">
+          <button type="button" data-v="schlecht">schlecht</button>
+          <button type="button" data-v="okay">okay</button>
+          <button type="button" data-v="gut">gut</button>
+        </div>
+      </div>
+      <div>
+        <label class="lbl" for="steps">Schritte <output id="stepsOut">+0 XP</output></label>
+        <div class="steps-row">
+          <input type="number" id="steps" min="0" max="60000" step="100" inputmode="numeric" placeholder="z. B. 7500">
+          <button class="btn" id="stepsSave" type="button">Speichern</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card letterc" aria-label="Wochenbrief">
+      <div><p class="eyebrow" id="letterEyebrow">Wochenbrief</p><h2 id="letterHead">Post von Moro</h2></div>
+      <div class="paper" id="letterPreview"></div>
+      <button class="btn" id="letterOpen" type="button">Ganzen Brief lesen</button>
+    </section>
+
+    <section class="card tests" aria-label="Messwerte">
+      <div class="tests-head">
+        <div><p class="eyebrow">Echte Fortschritte</p><h2>Deine Messwerte</h2></div>
+        <span class="q-state due" id="testDue" hidden>Test fällig</span>
+      </div>
+      <div class="tbl-scroll"><table class="tbl" id="testTable"></table></div>
+      <form id="testForm" class="test-form">
+        <label for="tRun">1 km<input id="tRun" placeholder="6:30" inputmode="numeric"></label>
+        <label for="tPush">Liegestütze<input id="tPush" type="number" min="0" placeholder="10"></label>
+        <label for="tRhr">Ruhepuls<input id="tRhr" type="number" min="30" max="120" placeholder="68"></label>
+        <button class="btn" type="submit">Messung speichern</button>
+      </form>
+      <p class="fine" id="testHint"></p>
+    </section>
+
+    <section class="card records" aria-label="Persönliche Rekorde">
+      <div><p class="eyebrow">Persönliche Rekorde</p><h2>Deine Bestwerte</h2></div>
+      <div class="recs" id="recs"></div>
+    </section>
+
+    <section class="card log" aria-label="Training eintragen">
+      <div><p class="eyebrow" id="logDay">Heute · Tag 1</p><h2>Training eintragen</h2></div>
+      <form id="logForm" style="display:grid;gap:16px">
+        <fieldset>
+          <legend>Sportart</legend>
+          <div class="chips" id="typeChips"></div>
+        </fieldset>
+        <div>
+          <label class="lbl" for="dur">Dauer <output id="durOut" for="dur">45 min</output></label>
+          <input type="range" id="dur" min="10" max="120" step="5" value="45">
+        </div>
+        <fieldset>
+          <legend>Intensität</legend>
+          <div class="chips ints" id="intChips"></div>
+        </fieldset>
+        <p class="preview" id="xpPreview"></p>
+        <button class="btn primary" type="submit">Training eintragen</button>
+      </form>
+    </section>
+
+    <section class="card bodyc" aria-label="Was in deinem Körper passiert">
+      <p class="eyebrow" id="factWeek">Woche 1 in deinem Körper</p>
+      <h2 id="factTitle"></h2>
+      <p class="txt" id="factText"></p>
+      <div class="weekdots" id="weekDots" aria-label="Fortschritt bis Woche 12"></div>
+      <p class="fine">Typische Anpassungen bei Einsteigern. Wie schnell sie kommen, ist individuell verschieden.</p>
+    </section>
+
+    <section class="card cal" aria-label="Trainingskalender">
+      <div class="cal-head">
+        <div><p class="eyebrow">Trainingskalender</p><h2>Die ersten 12 Wochen</h2></div>
+        <div class="legend">weniger <i style="background:var(--heat0)"></i><i style="background:var(--heat1)"></i><i style="background:var(--heat2)"></i><i style="background:var(--heat3)"></i> mehr XP</div>
+      </div>
+      <div class="heat-scroll"><div class="heat" id="heat"></div></div>
+      <p class="fine">Pro Tag zählen höchstens 120 XP. Wöchentlicher Bonus: +25 XP ab 2 Trainingstagen, +60 XP ab 3.</p>
+    </section>
+
+    <section class="card album" aria-label="Entwicklung und Fundstücke">
+      <div><p class="eyebrow">Vorher und nachher</p><h2>Entwicklung</h2></div>
+      <div class="stages" id="stages"></div>
+      <div>
+        <p class="eyebrow" style="margin-bottom:8px">Vier Tier-Linien · ab Stufe Teen</p>
+        <div class="lines" id="lines"></div>
+        <p class="fine" style="margin-top:8px">Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.</p>
+      </div>
+      <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
+      <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
+    </section>
+
+    <section class="card hist" aria-label="Letzte Trainings">
+      <div><p class="eyebrow">Verlauf</p><h2>Letzte Trainings</h2></div>
+      <ul id="hist"></ul>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<canvas class="confetti" id="confetti" hidden aria-hidden="true"></canvas>
+<div class="evo" id="letter" hidden role="dialog" aria-modal="true" aria-labelledby="letterTitle">
+  <div class="evo-card letter-card">
+    <p class="eyebrow">Wochenbrief</p>
+    <h2 id="letterTitle"></h2>
+    <div class="paper" id="letterBody"></div>
+    <button class="btn primary" id="letterClose" type="button">Danke, Moro</button>
+  </div>
+</div>
+<div class="evo" id="evo" hidden role="dialog" aria-modal="true" aria-labelledby="evoTitle">
+  <div class="evo-card">
+    <canvas id="evoCanvas" width="40" height="40"></canvas>
+    <p class="eyebrow" id="evoEyebrow">Neue Stufe</p>
+    <h2 id="evoTitle"></h2>
+    <p id="evoText"></p>
+    <button class="btn primary" id="evoClose" type="button">Weiter</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const KEY = 'moro-v1';
+const TYPES = {
+  laufen:    { label: 'Laufen',        w: { aus: 1,  kra: .2, bew: .1 } },
+  rad:       { label: 'Radfahren',     w: { aus: .9, kra: .3, bew: .1 } },
+  schwimmen: { label: 'Schwimmen',     w: { aus: .8, kra: .4, bew: .3 } },
+  kraft:     { label: 'Krafttraining', w: { aus: .2, kra: 1,  bew: .2 } },
+  yoga:      { label: 'Yoga',          w: { aus: .1, kra: .3, bew: 1 } },
+  team:      { label: 'Teamsport',     w: { aus: .7, kra: .4, bew: .4 } },
+};
+const STAT_NAMES = { aus: 'Ausdauer', kra: 'Kraft', bew: 'Beweglichkeit' };
+// Drei Intensitäten; die Werte bleiben auf der alten 1–5-Skala, damit XP und gespeicherte Trainings stimmen
+const INT_OPTS = [[1, 'locker'], [3, 'fordernd'], [4, 'hart']];
+const intLabel = v => v <= 2 ? 'locker' : v === 3 ? 'fordernd' : 'hart';
+const STAGES = [
+  { name: 'Ei', xp: 0 }, { name: 'Baby', xp: 0 }, { name: 'Kind', xp: 550 },
+  { name: 'Teen', xp: 1300 }, { name: 'Erwachsen', xp: 2400 },
+];
+const LINES = {
+  aus: { stat: 'Ausdauer', animal: 'Hase', lineName: 'Hasen-Linie', teen: 'Häschen', adult: 'Sprinthase', teenArt: 'ein Häschen', adultArt: 'ein Sprinthase', sports: 'Laufen, Rad' },
+  kra: { stat: 'Kraft', animal: 'Bär', lineName: 'Bären-Linie', teen: 'Bärchen', adult: 'Kraftbär', teenArt: 'ein Bärchen', adultArt: 'ein Kraftbär', sports: 'Krafttraining' },
+  bew: { stat: 'Beweglichkeit', animal: 'Katze', lineName: 'Katzen-Linie', teen: 'Kätzchen', adult: 'Flowkatze', teenArt: 'ein Kätzchen', adultArt: 'eine Flowkatze', sports: 'Yoga' },
+  hyb: { stat: 'Ausgewogen', animal: 'Tiger', lineName: 'Tiger-Linie', teen: 'Tigerjunges', adult: 'Hybridtiger', teenArt: 'ein Tigerjunges', adultArt: 'ein Hybridtiger', sports: 'gemischtes Training' },
+};
+const lineReason = l => l.animal === 'Tiger' ? 'Du trainierst ausgewogen' : `${l.stat} liegt bei dir vorne`;
+const stageName = (s, line) => s >= 3 && line ? LINES[line][s === 3 ? 'teen' : 'adult'] : STAGES[s].name;
+const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Sneaker', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
+const BASE_ITEMS = Object.keys(ITEMS);
+// Saisonale Fundstücke: gibt es nur in ihrer Jahreszeit
+const SEASON_ITEMS = { muetze: ['Bommelmütze', 'winter'], kranz: ['Blumenkranz', 'fruehling'], sonnenhut: ['Sonnenhut', 'sommer'], blatt: ['Herbstblatt', 'herbst'] };
+Object.entries(SEASON_ITEMS).forEach(([k, [l]]) => { ITEMS[k] = l; });
+const SEASON_NAMES = { winter: 'Winter', fruehling: 'Frühling', sommer: 'Sommer', herbst: 'Herbst' };
+const dateOf = (s, day) => { const d = new Date((s.start || new Date().toISOString().slice(0, 10)) + 'T12:00:00'); d.setDate(d.getDate() + day); return d; };
+const seasonOf = d => { const m = d.getMonth() + 1; return m === 12 || m <= 2 ? 'winter' : m <= 5 ? 'fruehling' : m <= 8 ? 'sommer' : 'herbst'; };
+const seasonItem = season => Object.keys(SEASON_ITEMS).find(k => SEASON_ITEMS[k][1] === season);
+// Gesundheit
+const WATER_GOAL = 6, WATER_MAX = 8; // 8 Gläser à 0,25 l = 2 l
+const stepXp = steps => Math.min(30, Math.floor((steps || 0) / 1000) * 4);
+const hp = (s, d) => (s.health && s.health[d]) || {};
+// Tagesquests: werden automatisch abgehakt, sobald die Daten passen
+const QUEST_XP = 20;
+const QUESTS = [
+  { id: 'dehnen', text: '10 Minuten Yoga oder Dehnen', check: (s, d) => s.workouts.some(w => w.day === d && w.type === 'yoga' && w.min >= 10) },
+  { id: 'lang', text: 'Ein Training von mindestens 30 Minuten', check: (s, d) => s.workouts.some(w => w.day === d && w.min >= 30) },
+  { id: 'neu', text: 'Eine Sportart, die du diese Woche noch nicht gemacht hast', check: (s, d) => { const w0 = Math.floor(d / 7) * 7; const seen = new Set(s.workouts.filter(w => w.day >= w0 && w.day < d).map(w => w.type)); return s.workouts.some(w => w.day === d && !seen.has(w.type)); } },
+  { id: 'wasser', text: `${WATER_GOAL} Gläser Wasser trinken`, check: (s, d) => (hp(s, d).water || 0) >= WATER_GOAL },
+  { id: 'schritte', text: '6.000 Schritte gehen', check: (s, d) => (hp(s, d).steps || 0) >= 6000 },
+  { id: 'schlaf', text: 'Eintragen, wie du geschlafen hast', check: (s, d) => !!hp(s, d).sleep },
+  { id: 'locker', text: 'Eine lockere Einheit, Erholung zählt auch', check: (s, d) => s.workouts.some(w => w.day === d && w.int <= 2) },
+];
+const questOf = (s, d) => QUESTS[((d + 1) * 5 + (s.seed || 0)) % QUESTS.length];
+// Echte Messwerte
+const TESTS = [
+  { id: 'run', label: '1 km Laufzeit', better: -1, fmt: v => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} min`, diff: v => `${Math.floor(Math.abs(v) / 60)}:${String(Math.abs(v) % 60).padStart(2, '0')} min`, ph: '6:30' },
+  { id: 'push', label: 'Liegestütze am Stück', better: 1, fmt: v => `${v}`, diff: v => `${Math.abs(v)}`, ph: '10' },
+  { id: 'rhr', label: 'Ruhepuls', better: -1, fmt: v => `${v} bpm`, diff: v => `${Math.abs(v)} bpm`, ph: '68' },
+];
+const TEST_WEEKS = [1, 4, 8, 12];
+const REC_LABELS = { longest: 'Längstes Training', weekMost: 'Meiste Trainings in einer Woche', streakBest: 'Längste Serie', dayBest: 'Bester Tag' };
+const DAY_CAP = 120;
+const FACTS = [
+  { from: 1, title: 'Das Nervensystem lernt mit', text: 'Die ersten Fortschritte kommen fast nur aus dem Kopf: Dein Nervensystem lernt, mehr Muskelfasern gleichzeitig anzusteuern. Dazu sinken nach jeder Einheit die Stresshormone, und viele schlafen tiefer.' },
+  { from: 2, title: 'Mehr Blut im Kreislauf', text: 'Schon nach ein bis zwei Wochen Ausdauertraining steigt das Blutplasmavolumen. Das Herz pumpt pro Schlag mehr Blut, und dein Puls liegt bei gleicher Belastung etwas niedriger.' },
+  { from: 3, title: 'Neue Kraftwerke in den Zellen', text: 'Deine Muskelzellen bauen zusätzliche Mitochondrien. Du merkst es daran, dass sich dieselbe Runde oder dieselbe Übung weniger hart anfühlt.' },
+  { from: 5, title: 'Mehr Leitungen für Sauerstoff', text: 'Rund um die Muskelfasern wachsen neue Kapillaren. Sauerstoff kommt schneller an, und du erholst dich zwischen Intervallen und Sätzen spürbar schneller.' },
+  { from: 7, title: 'Jetzt ist es messbar', text: 'Nach 6 bis 8 Wochen hat sich die maximale Sauerstoffaufnahme (VO₂max) bei Einsteigern typischerweise um einige Prozent verbessert. Muskelwachstum lässt sich jetzt im Labor nachweisen.' },
+  { from: 9, title: 'Sehnen brauchen länger', text: 'Muskeln wachsen weiter, Sehnen und Knochen passen sich langsamer an. Steigere deshalb Umfang und Gewicht behutsam, etwa 10 Prozent pro Woche.' },
+  { from: 12, title: 'Sichtbar', text: 'Ab etwa 12 Wochen sehen viele die Veränderung im Spiegel. Ab hier trägt dich der Sport immer mehr selbst. Moro hat seinen Job gemacht.' },
+];
+const EVO_TEXT = {
+  1: n => `Drei Trainings geschafft. Genau hier hören die meisten wieder auf. ${n} ist geschlüpft, weil du weitergemacht hast.`,
+  2: n => `${n} wächst, und deine Muskeln bauen gerade neue Mitochondrien. Achte auf die kleinen Ohren: Sie verraten, welches Tier aus ${n} wird.`,
+  3: (n, l) => `${lineReason(l)}, deshalb wird ${n} ${l.teenArt}. Wer anders trainiert, bekommt ein anderes Tier.`,
+  4: (n, l) => `Ausgewachsen als ${l.adult}. Was ${n} in diesen Wochen geworden ist, siehst du bald auch an dir selbst.`,
+};
+
+const xpOf = w => Math.round(w.min * (0.6 + 0.2 * w.int));
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+// Echtzeit-Modus (PWA): Tage laufen nach dem Kalender, keine Beispieldaten, keine Prototyp-Knöpfe
+const REAL_TIME = true;
+const localIso = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(state, d); return x.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }); };
+const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
+function freshState() {
+  return { v: 1, name: 'Moro', day: 0, workouts: [], items: [], paused: false, sample: false, seenStage: 0, stageDays: {}, line: null,
+    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null };
+}
+function sampleState() {
+  const plan = [[0,'laufen',25,2],[2,'yoga',30,2],[4,'laufen',30,3],[7,'kraft',40,3],[9,'laufen',35,3],[11,'rad',50,2],[14,'laufen',40,3],[15,'kraft',45,3],[17,'laufen',45,4]];
+  const s = freshState();
+  s.day = 18; s.sample = true;
+  const st = new Date(); st.setDate(st.getDate() - 18); s.start = localIso(st);
+  s.workouts = plan.map(([day, type, min, int], i) => ({ id: 'w' + i, day, type, min, int }));
+  s.items = [{ id: 'stirnband', day: 4 }, { id: 'flasche', day: 11 }];
+  s.stageDays = { 1: 4, 2: 17 };
+  s.health = { 14: { water: 5, sleep: 'gut', steps: 7200 }, 15: { water: 7, sleep: 'okay' }, 16: { water: 4, sleep: 'schlecht', steps: 4100 }, 17: { water: 6, sleep: 'gut', steps: 8300 } };
+  s.questsDone = { 14: true, 17: true };
+  s.tests = [{ day: 1, run: 400, push: 8, rhr: 72 }];
+  s.letterWeek = 2;
+  const d = derive(s); s.seenStage = d.stage; s.recs = d.recs;
+  return s;
+}
+function load() {
+  try {
+    const r = localStorage.getItem(KEY); if (!r) return null;
+    const s = JSON.parse(r); if (!s || s.v !== 1) return null;
+    s.items.forEach(i => { if (i.id === 'sonnenbrille') i.id = 'handtuch'; });
+    if (s.letterWeek === undefined) s.letterWeek = Math.floor(s.day / 7);
+    const f = freshState(); for (const k in f) if (s[k] === undefined) s[k] = f[k];
+    return s;
+  } catch (e) { return null; }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+function derive(s) {
+  const ws = s.workouts.filter(w => w.day <= s.day);
+  const byDay = {};
+  ws.forEach(w => (byDay[w.day] = byDay[w.day] || []).push(w));
+  let xp = 0; const stats = { aus: 0, kra: 0, bew: 0 }; const dayXp = {};
+  for (const d in byDay) {
+    const sum = byDay[d].reduce((a, w) => a + xpOf(w), 0);
+    const f = sum > DAY_CAP ? DAY_CAP / sum : 1;
+    dayXp[d] = Math.round(sum * f); xp += dayXp[d];
+    byDay[d].forEach(w => { for (const k in stats) stats[k] += xpOf(w) * f * TYPES[w.type].w[k]; });
+  }
+  // Schritte: kleine Extra-XP (max. 30 pro Tag), zählen für Ausdauer
+  for (const d in (s.health || {})) {
+    if (+d > s.day) continue;
+    const sx = stepXp(s.health[d].steps);
+    if (sx) { xp += sx; dayXp[d] = (dayXp[d] || 0) + sx; stats.aus += sx * .8; }
+  }
+  // Tagesquests: +20 XP pro geschaffter Quest
+  const questCount = Object.keys(s.questsDone || {}).filter(d => +d <= s.day).length;
+  xp += questCount * QUEST_XP;
+  const curWeek = Math.floor(s.day / 7);
+  const weekDays = [], weekCounts = [];
+  for (let i = 0; i <= curWeek; i++) {
+    let n = 0, c = 0; for (let d = i * 7; d < i * 7 + 7; d++) if (byDay[d]) { n++; c += byDay[d].length; }
+    weekDays.push(n); weekCounts.push(c);
+    xp += n >= 3 ? 60 : n === 2 ? 25 : 0;
+  }
+  let streak = 0, i = curWeek;
+  if (weekDays[i] < 2) i--;
+  while (i >= 0 && weekDays[i] >= 2) { streak++; i--; }
+  let streakBest = 0, run = 0;
+  weekDays.forEach(n => { run = n >= 2 ? run + 1 : 0; streakBest = Math.max(streakBest, run); });
+  const recs = {
+    longest: ws.reduce((a, w) => Math.max(a, w.min), 0),
+    weekMost: Math.max(0, ...weekCounts),
+    streakBest,
+    dayBest: Math.max(0, ...Object.values(dayXp)),
+  };
+  const count = ws.length;
+  const stage = count < 3 ? 0 : xp < 550 ? 1 : xp < 1300 ? 2 : xp < 2400 ? 3 : 4;
+  // Hybrid (Tiger), wenn die stärkste Eigenschaft weniger als 25 % vor der zweiten liegt
+  const ranked = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+  const lean = ranked[0][1] > 0 ? (ranked[0][1] < ranked[1][1] * 1.25 ? 'hyb' : ranked[0][0]) : null;
+  const line = stage >= 3 ? (s.line || lean || 'aus') : null;
+  const last = ws.length ? Math.max(...ws.map(w => w.day)) : null;
+  const gap = last === null ? null : s.day - last;
+  const n = s.name;
+  let mood;
+  if (s.paused) mood = { key: 'pause', label: 'Pause', face: 'sleep', text: `${n} schläft und hält deinen Fortschritt fest, bis du wieder loslegst.` };
+  else if (gap === null) mood = { key: 'new', label: 'Wartet', face: 'neutral', text: 'Trag dein erstes Training ein, dann fängt das Ei an zu wackeln.' };
+  else if (gap === 0) mood = { key: 'proud', label: 'Stolz', face: 'happy', text: stage === 0 ? 'Es wackelt! Da drin tut sich was.' : `Heute trainiert. ${n} hüpft vor Stolz.` };
+  else if (gap === 1) mood = { key: 'rest', label: 'Erholt sich', face: 'content', text: 'Ruhetag. Muskeln wachsen in der Pause, nicht beim Training. Morgen geht es weiter.' };
+  else if (gap === 2) mood = { key: 'ready', label: 'Bereit', face: 'neutral', text: `${n} ist ausgeruht und bereit für die nächste Einheit.` };
+  else if (gap === 3) mood = { key: 'restless', label: 'Rastlos', face: 'restless', text: `${n} tippelt herum und wartet auf die nächste Einheit.` };
+  else mood = { key: 'tired', label: 'Schlapp', face: 'sad', text: `${n} ist schlapp, aber nicht verloren. Eine kurze Einheit reicht, um es aufzuwecken.` };
+  const today = hp(s, s.day);
+  if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
+  const shine = (today.water || 0) >= WATER_GOAL;
+  const norm = {}; for (const k in stats) norm[k] = Math.min(1, stats[k] / 700);
+  return { xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
+}
+
+/* ---------- Pixel-Zeichnung ---------- */
+const PAL = {
+  moro: { fill: '#9CC0FF', shade: '#7DA3F0', out: '#2E4590', belly: '#E4EDFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#2E4590' },
+  aus:  { fill: '#FBF8F6', shade: '#E2DAE0', out: '#6A5870', belly: '#FFFFFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#FF7FA0' },
+  kra:  { fill: '#C68D60', shade: '#A56E46', out: '#4A2C18', belly: '#F2D7BA', hi: '#E2B48C', inner: '#EDBB93', nose: '#3A2418' },
+  bew:  { fill: '#FFB168', shade: '#EC9046', out: '#7A3E12', belly: '#FFF0DF', hi: '#FFD6AE', inner: '#FFB3C7', nose: '#FF7FA0', stripe: '#E27A2C' },
+  hyb:  { fill: '#FF9536', shade: '#E8761A', out: '#4A220A', belly: '#FFF7EE', hi: '#FFC48A', inner: '#FFF7EE', nose: '#FF7FA0', stripe: '#24160E' },
+};
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const DARK = '#141B2D', RED = '#E5484D', GOLD = '#F5B82E', WHITE = '#FFFFFF', BLUSH = '#FF9DB0';
+
+function drawPet(ctx, L, f) {
+  ctx.clearRect(0, 0, 40, 40);
+  const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+  const cx = 20 + (L.face === 'restless' && L.stage > 0 ? [0, 1, 0, -1][f % 4] : 0), ground = 34;
+  ctx.fillStyle = 'rgba(19,26,44,.18)';
+  ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1);
+
+  const shape = (rx, ry, egg) => (x, y) => { const r = (egg && y < 0) ? rx * .8 : rx; return (x * x) / (r * r) + (y * y) / (ry * ry) <= 1.1; };
+  const blob = (ox, oy, rx, ry, c, egg, noHi) => {
+    const ins = shape(rx, ry, egg);
+    for (let y = -ry - 1; y <= ry + 1; y++) for (let x = -rx - 1; x <= rx + 1; x++) {
+      if (!ins(x, y)) continue;
+      const edge = !ins(x + 1, y) || !ins(x - 1, y) || !ins(x, y + 1) || !ins(x, y - 1);
+      let col = edge ? c.out : ((x / rx + y / ry) > .6 ? c.shade : c.fill);
+      const hx = -Math.round(rx * .45), hy = -Math.round(ry * .5);
+      if (!noHi && !edge && x === hx && (y === hy || y === hy + 1)) col = c.hi;
+      P(ox + x, oy + y, col);
+    }
+    return ins;
+  };
+  const items = new Set(L.items || []);
+
+  if (L.stage === 0) {
+    const rx = 6, ry = 8, cy = ground - ry - 1;
+    let wob = 0;
+    if (L.face === 'happy' || L.count >= 2) wob = [0, 1, 0, -1][f % 4];
+    else if (L.count === 1) wob = f % 10 < 2 ? [1, -1][f % 2] : 0;
+    const ex = cx + wob;
+    blob(ex, cy, rx, ry, { fill: '#FBF6EA', shade: '#E7DEC9', out: '#8C93A8', hi: '#FFFFFF' }, true);
+    [[-2, -3], [2, 1], [-3, 3], [1, -5], [3, 4]].forEach(([x, y]) => P(ex + x, cy + y, '#7FA7FF'));
+    if (L.count >= 1) [[-4, 0], [-3, -1], [-2, 0], [-1, -1], [0, 0]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    if (L.count >= 2) [[1, -1], [2, 0], [3, -1], [4, 0], [0, 1]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    return;
+  }
+
+  const st = L.stage;
+  const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
+  let c = PAL[kind];
+  if (L.face === 'sad') c = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, mix(v, '#9AA0AE', .4)]));
+  const size = { 1: [5, 4], 2: [6, 6], 3: [7, 7], 4: [8, 8] }[st];
+  const rx = size[0] + (kind === 'kra' ? (st === 4 ? 2 : 1) : kind === 'hyb' && st === 4 ? 1 : 0), ry = size[1];
+  const box = (x, y, w, h) => { const a = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) a.push([x + i, y + j]); return a; };
+  const mask = (pts, col) => {
+    const k = new Set(pts.map(([x, y]) => x + ',' + y)), has = (x, y) => k.has(x + ',' + y);
+    pts.forEach(([x, y]) => P(x, y, (!has(x + 1, y) || !has(x - 1, y) || !has(x, y + 1) || !has(x, y - 1)) ? col.out : col.fill));
+  };
+  const fh = st === 1 ? 1 : 2, fw = st >= 3 ? 3 : 2;
+  const up = f % 4 < 2;
+  const hop = L.face === 'happy' && up ? -1 : 0;
+  const cy = ground - 1 - fh - ry + hop;
+  const ins = shape(rx, ry, false);
+  const topAt = dx => { let ty = -ry - 1; while (!ins(dx, ty) && ty < 0) ty++; return cy + ty; };
+
+  // Gegenstände am Boden
+  if (items.has('hantel') && st >= 2) { const x = cx + rx + 4; R(x, ground - 3, 2, 3, '#3A4256'); R(x + 2, ground - 2, 3, 1, '#9AA3B5'); R(x + 5, ground - 3, 2, 3, '#3A4256'); }
+  { // Gefaltetes Handtuch am Boden, die Trinkflasche steht darauf
+    const towel = items.has('handtuch'), TW = 12, tx = Math.max(1, 20 - rx - TW - 2);
+    let base = ground;
+    if (towel) { // ausgebreitetes Badetuch: zwei Streifen an jedem Ende, Fransen an den Kanten
+      R(tx, ground - 3, TW, 1, '#5FD3C2'); R(tx, ground - 2, TW, 1, '#2BB3A0'); R(tx, ground - 1, TW, 1, '#17675C');
+      [1, 3, TW - 2, TW - 4].forEach(o => R(tx + o, ground - 3, 1, 2, WHITE));
+      [-1, TW].forEach(o => { P(tx + o, ground - 3, '#17675C'); P(tx + o, ground - 1, '#17675C'); });
+      base = ground - 3;
+    }
+    if (items.has('flasche')) {
+      const x = towel ? tx + Math.floor(TW / 2) - 1 : 20 - rx - 7;
+      R(x, base - 5, 3, 5, '#2F5BFF'); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, '#9DB4FF');
+    }
+  }
+
+  // Hinter dem Körper: Schwanz
+  if (kind === 'bew' || kind === 'hyb') {
+    const s = f % 8 < 4 ? 0 : 1;
+    const pts = [[rx - 2, ry - 1], [rx - 1, ry - 2], [rx, ry - 2], [rx + 1, ry - 3], [rx + 2, ry - 4], [rx + 2, ry - 5], [rx + 2, ry - 6], [rx + 1 + s, ry - 7], [rx + s, ry - 8]];
+    pts.forEach(([x, y]) => R(cx + x - 1, cy + y - 1, 3, 3, c.out));
+    pts.forEach(([x, y], i) => P(cx + x, cy + y, kind === 'hyb' ? (i > 2 && i % 2 ? c.stripe : c.fill) : i >= pts.length - 2 ? c.stripe : c.fill));
+  }
+  if (kind === 'aus') blob(cx + rx, cy + ry - 2, 2, 2, c, false, true);
+
+  // Ohren: bei Kind als Andeutung der kommenden Tier-Linie
+  const earKind = st >= 3 ? kind : st === 2 ? L.lean : null;
+  if (earKind === 'aus') {
+    const h = st === 2 ? 3 : st === 3 ? 6 : 8;
+    [-1, 1].forEach(s => {
+      const dx = s * Math.max(2, Math.round(rx * .4));
+      const base = topAt(dx) + 1;
+      for (let i = 0; i < h; i++) {
+        const tilt = st === 4 && s === 1 && i >= h - 3 ? i - (h - 4) : 0;
+        const x = cx + dx - 1 + tilt, y = base - i;
+        if (i === h - 1) { P(x + 1, y, c.out); continue; }
+        P(x, y, c.out); P(x + 2, y, c.out); P(x + 1, y, i >= 1 && i <= h - 3 ? c.inner : c.fill);
+      }
+    });
+  } else if (earKind === 'kra') {
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const oy = topAt(dx) + (st === 2 ? 0 : 1);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy, c.inner); P(cx + dx, oy - 1, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); }
+    });
+  } else if (earKind === 'hyb') { // kleine runde Tigerohren mit hellem Inneren
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - 3);
+      const oy = topAt(dx);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy - 1, c.inner); P(cx + dx, oy, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); P(cx + dx, oy - 2, c.stripe); }
+    });
+  } else if (earKind === 'bew') {
+    const h = st === 2 ? 2 : st === 3 ? 3 : 4;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const base = topAt(dx) + 1;
+      for (let i = 1; i <= h; i++) {
+        const w = Math.round((h - i) * .7), y = base - i;
+        for (let x = -w; x <= w; x++) {
+          const edge = Math.abs(x) === w;
+          P(cx + dx + x, y, edge ? c.out : (Math.abs(x) <= w - 1 && i <= h - 1 ? c.inner : c.fill));
+        }
+      }
+    });
+  }
+
+  // Arme / Pfoten
+  if (kind === 'kra') {
+    // Muskelarme: hängend mit Bizeps, beim Jubeln (Erwachsen auch in Ruhe) im Doppelbizeps
+    const big = st === 4;
+    const flex = (L.face === 'happy' && up) || (big && L.face === 'content');
+    let arm;
+    if (flex) arm = big
+      ? [...box(-1, -1, 6, 3), ...box(1, -2, 3, 1), ...box(3, -7, 3, 6)]
+      : [...box(-1, -1, 5, 2), ...box(1, -2, 2, 1), ...box(2, -5, 3, 4)];
+    else arm = big
+      ? [...box(-1, 0, 4, 7), ...box(3, 1, 1, 3)]
+      : [...box(-1, 0, 3, 5), ...box(2, 1, 1, 2)];
+    [-1, 1].forEach(s => mask(arm.map(([u, v]) => [cx + s * (rx + u), cy + v]), c));
+  } else if (st >= 2 && L.face === 'happy' && up) {
+    [cx - rx - 1, cx + rx].forEach(x => R(x, cy - 2, 2, 2, c.out));
+  }
+
+  // Füße
+  [cx - 1 - fw, cx + 2].forEach(x0 => {
+    const y0 = cy + ry + 1;
+    if (items.has('sneaker') && st >= 2) { R(x0, y0, fw, fh, RED); P(x0 + (x0 < cx ? 0 : fw - 1), y0 + fh - 1, WHITE); return; }
+    R(x0, y0, fw, fh, c.out);
+    if (fw >= 3 && fh >= 2) R(x0 + 1, y0, fw - 2, fh - 1, c.fill);
+  });
+
+  // Körper
+  blob(cx, cy, rx, ry, c, false);
+  if (kind === 'kra') { // Brust-Halbmond und Bauchmuskeln
+    const p = cy + 4;
+    [[-4, 0], [-3, 0], [3, 0], [4, 0], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]].forEach(([x, y]) => P(cx + x, p + y, c.belly));
+    if (st === 4) [[-1, 2], [1, 2], [-1, 3], [1, 3]].forEach(([x, y]) => P(cx + x, p + y, c.shade));
+  }
+  if (st >= 2 && kind !== 'aus' && kind !== 'kra') {
+    const brx = Math.round(rx * .5), bry = 1, by = cy + ry - 2;
+    for (let y = -bry; y <= bry; y++) for (let x = -brx; x <= brx; x++) {
+      const yy = by - cy + y;
+      if ((x * x) / (brx * brx) + (y * y) / (bry * bry) <= 1 && ins(x, yy + 1) && ins(x - 1, yy) && ins(x + 1, yy)) P(cx + x, by + y, c.belly);
+    }
+  }
+  if (kind === 'bew') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe)); }
+  if (kind === 'hyb') { // Tigerstreifen: Stirn und Flanken
+    const t = cy - ry;
+    [[0, 1], [0, 2], [0, 3], [-3, 2], [-2, 2], [2, 2], [3, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe));
+    [1, 3, 5].forEach(dy => {
+      if (dy >= ry - 1) return;
+      let w = rx; while (w > 0 && !ins(w, dy)) w--;
+      const len = dy === 3 ? 3 : 2;
+      for (let i = 1; i <= len; i++) { P(cx - w + i, cy + dy, c.stripe); P(cx + w - i, cy + dy, c.stripe); }
+    });
+  }
+  if (st === 2 && L.lean === 'hyb') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.out)); }
+  if (st === 1) { // Eierschale auf dem Kopf
+    R(cx - 3, cy - ry - 1, 6, 2, '#FBF6EA'); P(cx - 3, cy - ry - 2, '#FBF6EA'); P(cx, cy - ry - 2, '#FBF6EA'); P(cx + 2, cy - ry - 2, '#FBF6EA');
+    R(cx - 3, cy - ry + 1, 6, 1, '#8C93A8');
+  }
+  if (items.has('stirnband')) {
+    const by = cy - ry + 2;
+    for (let x = -rx; x <= rx; x++) if (ins(x, by - cy) && ins(x - 1, by - cy) && ins(x + 1, by - cy)) P(cx + x, by, RED);
+    let w = rx; while (!ins(w, by - cy)) w--;
+    P(cx + w + 1, by + 1, RED); P(cx + w + 2, by + 2, RED);
+  }
+  // Saisonale Fundstücke (Retro)
+  if (items.has('muetze')) {
+    const hb = cy - ry + 2;
+    for (let y = cy - ry - 1; y <= hb; y++) for (let x = -rx; x <= rx; x++) if (ins(x, y - cy)) P(cx + x, y, y === hb ? '#F4F1EC' : ((x + 40) % 2 ? '#E5484D' : '#C93A40'));
+    R(cx - 1, cy - ry - 3, 3, 2, '#F4F1EC');
+  }
+  if (items.has('sonnenhut')) { R(cx - rx + 1, cy - ry + 1, 2 * rx - 1, 1, '#DDB45A'); R(cx - 3, cy - ry - 2, 7, 3, '#F2CF7A'); R(cx - 3, cy - ry, 7, 1, '#E5484D'); }
+  if (items.has('kranz')) [-4, -2, 0, 2, 4].forEach((x, i) => P(cx + x, topAt(x) + 1, ['#FF9DB0', '#FFFFFF', '#FFD25E', '#FFFFFF', '#FF9DB0'][i]));
+  if (items.has('blatt')) { const x = cx + Math.round(rx * .45), y = cy - ry + 1; R(x, y, 2, 2, '#D9472B'); P(x + 2, y - 1, '#D9472B'); P(x + 1, y - 1, '#D9472B'); P(x - 1, y + 2, '#5A1608'); }
+  if (L.shine) { P(cx - rx - 2, cy - ry + 3, '#7FC4FF'); P(cx + rx + 2, cy - ry + 6, '#7FC4FF'); P(cx - rx - 2, cy - ry + 2, '#CFE8FF'); }
+
+  // Gesicht
+  const ex = Math.max(2, Math.round(rx * .42));
+  const eh = st >= 3 ? 3 : 2;
+  const ey = cy - (st >= 3 ? 2 : 1);
+  const my = ey + eh + 1;
+  const face = L.face, blink = f % 28 === 0;
+  const eyes = [cx - ex - 1, cx + ex];
+  if (kind === 'kra' || kind === 'hyb') for (let y = -1; y <= 1; y++) for (let x = -3; x <= 3; x++) if (x * x / 9 + y * y / 2.2 <= 1) P(cx + x, my + y, c.belly);
+  eyes.forEach((x, i) => {
+    if (face === 'happy') { P(x - 1, ey + 1, DARK); P(x, ey, DARK); P(x + 1, ey, DARK); P(x + 2, ey + 1, DARK); }
+    else if (face === 'sleep') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
+    else if (blink) R(x, ey + eh - 1, 2, 1, DARK);
+    else {
+      R(x, ey, 2, eh, DARK); P(x, ey, WHITE);
+      if (eh === 3) P(x + 1, ey + 2, '#6B7BA8');
+      if (face === 'sad') { const l = i === 0; P(l ? x : x + 1, ey - 1, DARK); P(l ? x + 1 : x, ey - 2, DARK); }
+    }
+  });
+  if (face === 'happy' || face === 'content') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
+  if (kind === 'kra') R(cx - 1, my - 1, 3, 1, c.nose);
+  else if (kind !== 'moro') P(cx, my - 1, c.nose);
+  if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
+  else if (face === 'sad') { P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); }
+  else if (face === 'sleep') P(cx, my, DARK);
+  else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
+  else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
+  else if (face === 'content' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
+  else P(cx, my, DARK);
+  if (kind === 'bew') { R(cx - rx - 2, my - 1, 2, 1, c.out); R(cx - rx - 2, my + 1, 2, 1, c.out); R(cx + rx + 1, my - 1, 2, 1, c.out); R(cx + rx + 1, my + 1, 2, 1, c.out); }
+  if (items.has('medaille') && st >= 3) { // Band von den Seiten bis zur Medaille unten am Bauch
+    const y = cy + ry - 3;
+    let w = rx; while (w > 0 && !ins(w, 1)) w--;
+    [-1, 1].forEach(s => {
+      const x0 = cx + s * (w - 1), y0 = cy + 1, x1 = cx + s * 2, y1 = y - 1, n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let i = 0; i <= n; i++) P(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, '#2F5BFF');
+    });
+    R(cx - 1, y, 3, 3, GOLD); P(cx, y + 1, '#FFE08A'); P(cx - 1, y + 2, '#B9820C'); P(cx + 1, y + 2, '#B9820C');
+  }
+  if (face === 'sad') { P(eyes[0], ey + eh, '#7FC4FF'); P(eyes[0], ey + eh + 1, '#7FC4FF'); }
+  if (face === 'sleep') {
+    const zz = (x, y) => [[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]].forEach(([a, b]) => P(x + a, y + b, '#7C97FF'));
+    const o = f % 12;
+    zz(cx + rx + 1, cy - ry - 1 - Math.floor(o / 3));
+    if (o > 5) zz(cx + rx + 5, cy - ry - 5 - Math.floor((o - 6) / 3));
+  }
+}
+
+/* ---------- Highres-Zeichnung (240 × 240) ---------- */
+const HI_N = 240;
+const HPAL = {
+  moro: { fill: '#9CC0FF', mid: '#8EB4FA', shade: '#7DA3F0', deep: '#6489DC', out: '#2E4590', hi: '#BBD2FF', hi2: '#D3E2FF', belly: '#E4EDFF', bellyS: '#CCDCFA', inner: '#FFB3C7', nose: '#2E4590' },
+  aus:  { fill: '#FBF8F6', mid: '#F3EEEF', shade: '#E4DCE2', deep: '#CFC4CD', out: '#6A5870', hi: '#FFFFFF', hi2: '#FFFFFF', belly: '#FFFFFF', bellyS: '#EEE6E9', inner: '#FFB3C7', nose: '#FF7FA0' },
+  kra:  { fill: '#C99063', mid: '#BC8258', shade: '#AE754B', deep: '#8C5835', out: '#4A2C18', hi: '#E0AE82', hi2: '#EBBF97', belly: '#F4DCC0', bellyS: '#E2BF98', inner: '#EFC09A', nose: '#3A2418' },
+  bew:  { fill: '#FFB168', mid: '#F8A35B', shade: '#EC9046', deep: '#D2752F', out: '#7A3E12', hi: '#FFC890', hi2: '#FFD9B0', belly: '#FFF0DF', bellyS: '#F6DCC0', inner: '#FFB3C7', nose: '#FF7FA0', stripe: '#E27A2C' },
+  hyb:  { fill: '#FF9536', mid: '#F6872B', shade: '#E8761A', deep: '#C95F10', out: '#4A220A', hi: '#FFB066', hi2: '#FFC48A', belly: '#FFF7EE', bellyS: '#F3E2CF', inner: '#FFF7EE', nose: '#FF7FA0', stripe: '#24160E' },
+};
+
+function drawPetHi(ctx, L, f) {
+  const N = HI_N, k = N / 120;
+  ctx.clearRect(0, 0, N, N);
+  const PX = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const mk = () => new Uint8Array(N * N);
+  const has = (m, x, y) => x >= 0 && y >= 0 && x < N && y < N && m[y * N + x] === 1;
+  const ell = (m, ox, oy, rx, ry, egg) => {
+    ox *= k; oy *= k; rx *= k; ry *= k;
+    for (let y = Math.floor(oy - ry); y <= Math.ceil(oy + ry); y++) for (let x = Math.floor(ox - rx - 1); x <= Math.ceil(ox + rx + 1); x++) {
+      const r = egg && y + .5 < oy ? rx * .82 : rx;
+      const dx = (x + .5 - ox) / r, dy = (y + .5 - oy) / ry;
+      if (dx * dx + dy * dy <= 1 && x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = 1;
+    }
+  };
+  const cap = (m, x1, y1, x2, y2, r1, r2) => {
+    const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) * 2 * k) + 1;
+    for (let i = 0; i <= n; i++) { const t = i / n, r = r1 + (r2 - r1) * t; ell(m, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, r, r); }
+  };
+  const chain = (m, pts, r0, r1) => {
+    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    let acc = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      cap(m, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], r0 + (r1 - r0) * acc / total, r0 + (r1 - r0) * (acc + d) / total);
+      acc += d;
+    }
+  };
+  const tri = (m, a, b, c3) => {
+    const P3 = [a, b, c3].map(([x, y]) => [x * k, y * k]);
+    const xs = P3.map(p => p[0]), ys = P3.map(p => p[1]);
+    const sgn = (p, q, r) => (p[0] - r[0]) * (q[1] - r[1]) - (q[0] - r[0]) * (p[1] - r[1]);
+    for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
+      const p = [x + .5, y + .5], d1 = sgn(p, P3[0], P3[1]), d2 = sgn(p, P3[1], P3[2]), d3 = sgn(p, P3[2], P3[0]);
+      if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)) && x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = 1;
+    }
+  };
+  const T = Math.max(1, Math.round(k));
+  const isEdge = (m, x, y) => { for (let d = 1; d <= T; d++) if (!has(m, x + d, y) || !has(m, x - d, y) || !has(m, x, y + d) || !has(m, x, y - d)) return true; return false; };
+  const o = v => Math.round(v * k);
+  const paint = (m, p) => {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!has(m, x, y)) continue;
+      let c;
+      if (isEdge(m, x, y)) c = p.out;
+      else if (!has(m, x + o(2), y + o(2))) c = p.deep;
+      else if (!has(m, x + o(4), y + o(4))) c = p.shade;
+      else if (!has(m, x + o(6.5), y + o(6.5))) c = p.mid;
+      else if (!has(m, x - o(1.6), y - o(1.6))) c = p.hi2;
+      else if (!has(m, x - o(3), y - o(3))) c = p.hi;
+      else c = p.fill;
+      PX(x, y, c);
+    }
+  };
+  const fill = (m, col) => { for (let i = 0; i < N * N; i++) if (m[i]) PX(i % N, (i / N) | 0, col); };
+  const spot = (ox, oy, rx, ry, col) => { const m = mk(); ell(m, ox, oy, rx, ry); fill(m, col); };
+  const line = (pts, r, col) => { const m = mk(); if (pts.length === 1) ell(m, pts[0][0], pts[0][1], r, r); else chain(m, pts, r, r); fill(m, col); };
+  const DK = '#141B2D', lw = .55;
+  const items = new Set(L.items || []);
+  const face = L.face;
+  const up = face === 'happy' && f % 4 < 2;
+  const shadow = w0 => {
+    ctx.fillStyle = 'rgba(19,26,44,.16)';
+    [.9, 1, .93, .7].forEach((s, i) => { const w = w0 * s * (up ? .82 : 1) * k; ctx.fillRect(Math.round(60 * k - w / 2), (108 + i) * k, Math.round(w), k); });
+  };
+
+  // Ei
+  if (L.stage === 0) {
+    const wob = (face === 'happy' || L.count >= 2) ? [0, 2, 0, -2][f % 4] : L.count === 1 && f % 10 < 2 ? [2, -2][f % 2] : 0;
+    shadow(34);
+    ctx.save(); ctx.translate(wob * k, 0);
+    const m = mk(); ell(m, 60, 86, 17, 21, true);
+    paint(m, { fill: '#FBF6EA', mid: '#F3ECDC', shade: '#E7DEC9', deep: '#D3C7AC', out: '#8C93A8', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    [[53, 79, 3, 2.4], [66, 89, 3.4, 2.6], [55, 97, 2.6, 2], [64, 73, 2, 1.6], [69, 98, 2, 1.5]].forEach(([x, y, a, b]) => spot(x, y, a, b, '#9CC0FF'));
+    if (L.count >= 1) line([[45, 87], [49, 84], [52, 88], [56, 84], [60, 88]], .75, '#5D6478');
+    if (L.count >= 2) line([[60, 88], [64, 84], [68, 88], [72, 85], [75, 87]], .75, '#5D6478');
+    ctx.restore();
+    return;
+  }
+
+  const st = L.stage, baby = st === 1;
+  const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
+  let c = HPAL[kind];
+  if (face === 'sad') c = Object.fromEntries(Object.entries(c).map(([a, v]) => [a, mix(v, '#9AA0AE', .4)]));
+  const size = { 1: [22, 18], 2: [26, 23], 3: [29, 26], 4: [32, 29] }[st];
+  const rx = size[0] + (kind === 'kra' && st === 3 ? 1 : 0), ry = size[1];
+  const footRy = baby ? 4 : 6, footY = baby ? 104.5 : 103;
+  const cy = (baby ? 102 : 99) - ry, cx = 60, top = cy - ry, sc = rx / 32;
+  const hop = up ? -4 : 0, jit = face === 'restless' ? [0, 2, 0, -2][f % 4] : 0;
+  shadow(rx * 1.7);
+
+  // Gegenstände am Boden
+  if (items.has('hantel') && st >= 2) {
+    const x = Math.min(60 + rx + 6, 100);
+    line([[x + 2, 104], [x + 14, 104]], 1, '#9AA3B5');
+    [x + 1.5, x + 14.5].forEach(px => { const m = mk(); ell(m, px, 104, 2.8, 5.2); paint(m, { fill: '#4A5268', mid: '#454C62', shade: '#3A4256', deep: '#2E3446', out: '#1C2130', hi: '#6A7390', hi2: '#808AA6' }); });
+  }
+  {
+    const towel = items.has('handtuch'), tw = 28, tx = Math.max(2, 60 - rx - tw - 3);
+    let base = 109;
+    if (towel) {
+      const m = mk(); cap(m, tx + 3, 106, tx + tw - 3, 106, 3, 3);
+      paint(m, { fill: '#2BB3A0', mid: '#27A897', shade: '#209585', deep: '#1A7D70', out: '#0F4F47', hi: '#5FD3C2', hi2: '#86E0D3' });
+      [4, 6.5, tw - 6.5, tw - 4].forEach(dx => line([[tx + dx, 104], [tx + dx, 107.6]], .6, '#FFFFFF'));
+      [[tx - .5, 104.5, tx - 2.4, 105], [tx - .5, 107.5, tx - 2.4, 108], [tx + tw + .5, 104.5, tx + tw + 2.4, 105], [tx + tw + .5, 107.5, tx + tw + 2.4, 108]].forEach(([a, b, d, e]) => line([[a, b], [d, e]], .45, '#0F4F47'));
+      base = 103;
+    }
+    if (items.has('flasche')) {
+      const bx = towel ? tx + tw / 2 : 60 - rx - 10;
+      const m = mk(); cap(m, bx, base - 4, bx, base - 14, 4, 4);
+      paint(m, { fill: '#2F5BFF', mid: '#2A52EA', shade: '#2448D2', deep: '#1C39A8', out: '#122670', hi: '#7D97FF', hi2: '#A9BBFF' });
+      spot(bx, base - 9, 3.2, 1.8, '#9DB4FF');
+      const cm = mk(); ell(cm, bx, base - 19.5, 2.6, 1.9); paint(cm, { fill: '#E8ECF5', mid: '#E0E5F0', shade: '#CFD6E4', deep: '#B9C2D4', out: '#5B6478', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    }
+  }
+
+  ctx.save(); ctx.translate(Math.round(jit * k), Math.round(hop * k));
+
+  // Füße
+  const sneak = items.has('sneaker') && st >= 2;
+  const fp = sneak ? { fill: '#E5484D', mid: '#DC3F44', shade: '#C9373C', deep: '#A82B30', out: '#5A1416', hi: '#F27A7E', hi2: '#F79A9D' } : c;
+  [-1, 1].forEach(s => {
+    const fx = cx + s * rx * .44, m = mk(); ell(m, fx, footY, rx * .31, footRy); paint(m, fp);
+    if (sneak) { line([[fx - rx * .22, footY + footRy - 1.8], [fx + rx * .22, footY + footRy - 1.8]], .7, '#FFFFFF'); spot(fx, footY - 2, 1, 1, '#FFFFFF'); }
+  });
+
+  // Schwänze (hinter dem Körper)
+  const sway = f % 8 < 4 ? 0 : 2;
+  if (kind === 'bew' || kind === 'hyb') {
+    // glatte Kurve (kubische Bézierkurve, dicht abgetastet) statt eckiger Segmente
+    // Ansatz unten am Rücken (hinter dem Körper), dann flach nach außen und in einem Bogen nach oben
+    const B = [[rx - 12, ry - 4], [rx + 9, ry + 1], [rx + 15 + sway * .5, ry - 12], [rx + 9 + sway, ry - 25]].map(([x, y]) => [cx + x, cy + y]);
+    const at = t => { const u = 1 - t; return [0, 1].map(i => u * u * u * B[0][i] + 3 * u * u * t * B[1][i] + 3 * u * t * t * B[2][i] + t * t * t * B[3][i]); };
+    const pts = Array.from({ length: 41 }, (_, i) => at(i / 40));
+    const m = mk(); chain(m, pts, 5, 4); paint(m, c);
+    const tip = pts[pts.length - 1];
+    if (kind === 'hyb') { // Ringe nur innerhalb des Schwanzes, quer zur Kurve
+      [.42, .6, .77].forEach(t => {
+        const [x1, y1] = at(t - .02), [x2, y2] = at(t + .02), d = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / d, ny = (x2 - x1) / d, [mx, my] = at(t);
+        const r = mk(); cap(r, mx - nx * 6, my - ny * 6, mx + nx * 6, my + ny * 6, 1.05, 1.05);
+        for (let i = 0; i < N * N; i++) if (r[i] && m[i] && !isEdge(m, i % N, (i / N) | 0)) PX(i % N, (i / N) | 0, c.stripe);
+      });
+    }
+    { const tm = mk(); ell(tm, tip[0], tip[1], 6, 6); for (let i = 0; i < N * N; i++) if (tm[i] && m[i] && !isEdge(m, i % N, (i / N) | 0) && ((i / N) | 0) < (tip[1] + 1.5) * k) PX(i % N, (i / N) | 0, c.stripe); }
+  }
+
+  // Ohren (bei Kind als Andeutung der Linie)
+  const earKind = st >= 3 ? kind : st === 2 ? L.lean : null;
+  const es = st === 2 ? .45 : st === 3 ? .8 : 1;
+  if (earKind === 'aus') {
+    [-1, 1].forEach(s => {
+      const bx = cx + s * rx * .34, by = top + 7, len = 34 * es + (st === 2 ? 3 : 0);
+      const bend = st === 4 && s === 1;
+      const path = bend ? [[bx, by], [bx + s * 2, by - len * .62], [bx + s * 13, by - len * .62 + 5]] : [[bx, by], [bx + s * 3 * es, by - len]];
+      const m = mk(); chain(m, path, 6.4 * es + .6, 5.2 * es + .5); paint(m, c);
+      const ip = path.map((p, i) => i === 0 ? [p[0] + (path[1][0] - p[0]) * .22, p[1] + (path[1][1] - p[1]) * .22] : p);
+      const im = mk(); chain(im, ip, 2.9 * es + .2, 2.1 * es + .2); fill(im, c.inner);
+    });
+  } else if (earKind === 'kra') {
+    [-1, 1].forEach(s => { const x = cx + s * rx * .69, y = top + 6, m = mk(); ell(m, x, y, 10.5 * es + .5, 10 * es + .5); paint(m, c); spot(x, y + .5, 5.5 * es, 5 * es, c.inner); });
+  } else if (earKind === 'hyb') {
+    [-1, 1].forEach(s => {
+      const x = cx + s * rx * .66, y = top + 5, m = mk(); ell(m, x, y, 9 * es + .5, 8.5 * es + .5); paint(m, c);
+      spot(x, y + 1, 4.6 * es, 4.2 * es, c.inner);
+      if (st >= 3) spot(x, y - 6.2 * es, 3.4 * es, 1.6 * es, c.stripe);
+    });
+  } else if (earKind === 'bew') {
+    [-1, 1].forEach(s => {
+      // äußere Basisecke endet innerhalb der Kopfkontur, damit nichts seitlich absteht
+      const x = cx + s * rx * .46, b = top + 10, h = 21 * es + 3, w = 10 * es + 1;
+      const edge = rx * Math.sqrt(Math.max(0, 1 - ((b - cy) / ry) ** 2)) - 2.5;
+      const outer = cx + s * Math.min(Math.abs(x + s * w - cx), edge);
+      const m = mk(); tri(m, [x - s * w, b], [outer, b], [x + s * 3 * es, b - h]); paint(m, c);
+      const im = mk(); tri(im, [x - w * .5, b - 1], [x + w * .5, b - 1], [x + s * 2.2 * es, b - h * .66]); fill(im, c.inner);
+    });
+  }
+
+  // Arme und Pfoten
+  const bearFlex = kind === 'kra' && (face === 'happy' || (st === 4 && face === 'content'));
+  if (kind === 'kra') {
+    const g = st === 4 ? 1 : .8, rr = st === 4 ? 1 : .87, pump = up ? -4 : 0, flexR = up ? 1.2 : 0;
+    [-1, 1].forEach(s => {
+      const X = v => cx + s * v;
+      const m = mk();
+      if (bearFlex) {
+        cap(m, X(rx - 6), cy + 6, X(rx + 10 * g), cy + 1 + pump * .4, 8.5 * rr, 7.5 * rr);
+        ell(m, X(rx + 5 * g), cy - 6 + pump * .4, (9 + flexR) * rr, (7.5 + flexR) * rr);
+        cap(m, X(rx + 11 * g), cy + pump * .4, X(rx + 14 * g), cy - 18 * g + pump, 7.5 * rr, 6.5 * rr);
+        ell(m, X(rx + 14 * g), cy - 25 * g + pump, 8.5 * rr, 8 * rr);
+        paint(m, c);
+        line([[X(rx + 1.5 * g), cy + 1 + pump * .4], [X(rx + 3 * g), cy + 2.2 + pump * .4], [X(rx + 5 * g), cy + 2.2 + pump * .4], [X(rx + 6.5 * g), cy + 1 + pump * .4]], lw, c.shade);
+        const fy = cy - 25 * g + pump;
+        spot(X(rx + 14 * g), fy + 3, 3.6 * rr, 2.6 * rr, c.bellyS);
+        [[-3.5, -2.5], [0, -4], [3.5, -2.5]].forEach(([dx, dy]) => spot(X(rx + 14 * g) + dx * rr, fy + dy * rr, 1.4 * rr, 1.4 * rr, c.bellyS));
+      } else {
+        cap(m, X(rx - 5), cy + 2, X(rx + 4 * g), cy + 17 * g, 8 * rr, 7.5 * rr);
+        ell(m, X(rx + 2 * g), cy + 5, 7.5 * rr, 7.5 * rr);
+        paint(m, c);
+        spot(X(rx + 4 * g), cy + 19 * g, 3 * rr, 2 * rr, c.bellyS);
+      }
+    });
+  } else if (st >= 2 && up) {
+    // Jubelarme enden in denselben Pfoten wie vor dem Bauch (gleiche Form, Größe und Zehenlinien)
+    const pzA = kind === 'bew' || kind === 'hyb' ? 1.3 : 1;
+    [-1, 1].forEach(s => {
+      const hx = cx + s * (rx + 3), hy = cy - 12, m = mk();
+      cap(m, cx + s * (rx - 6), cy, hx, hy + 2, 3.6 * pzA, 3.2 * pzA); ell(m, hx, hy, 3.8 * pzA, 3.1 * pzA); paint(m, c);
+      [-1.1, 1.1].forEach(d => line([[hx + d * pzA, hy - 1.2 * pzA], [hx + d * pzA, hy - 2.4 * pzA]], .35 * pzA, c.deep));
+    });
+  }
+
+  // Körper
+  const body = mk(); ell(body, cx, cy, rx, ry); paint(body, c);
+  spot(cx - rx * .47, top + 12 * sc + 1, 5 * sc + 1, 3 * sc + .5, c.hi);
+  spot(cx - rx * .5, top + 11 * sc + 1, 2.2 * sc + .3, 1.2 * sc + .2, c.hi2);
+  if (kind === 'kra') [[-5, 3], [-4, 2], [-1, 2], [0, 1], [1, 2], [4, 3], [5, 2]].forEach(([x, y]) => line([[cx + x, top + y]], .6, c.shade));
+
+  // Bauch
+  if (kind === 'kra') {
+    spot(cx, cy + ry - 6, 15 * sc, 5.5, c.belly);
+    if (st === 4) [[-6, -9], [2, -9], [-6, -5], [2, -5]].forEach(([x, y]) => spot(cx + x + 1.75, cy + ry + y + 1.25, 2, 1.45, c.bellyS));
+  } else if (kind !== 'aus' && st >= 2) spot(cx, cy + ry - 7, rx * .45, 6, c.belly);
+  const pz = kind === 'bew' || kind === 'hyb' ? 1.3 : 1; // Katze und Tiger: größere Pfoten
+  const bunnyPaws = (dx, py) => [-1, 1].forEach(s => { // kleine Vorderpfoten
+    const px = cx + s * (dx + (pz - 1) * 4), m = mk(); ell(m, px, py, 3.8 * pz, 3.1 * pz); paint(m, c);
+    [-1.1, 1.1].forEach(d => line([[px + d * pz, py + 1.2 * pz], [px + d * pz, py + 2.4 * pz]], .35 * pz, c.deep));
+  });
+  const medal = items.has('medaille') && st >= 3;
+  const pawKind = kind === 'aus' || kind === 'bew' || kind === 'hyb';
+  if (pawKind && !up && !medal) bunnyPaws(8 * sc, cy + ry - 8);
+
+  // Zeichnungen
+  if (kind === 'bew') [[-6, 3, 7], [0, 2, 9], [6, 3, 7]].forEach(([x, y0, y1]) => line([[cx + x, top + y0], [cx + x, top + y1]], .9, c.stripe));
+  if (kind === 'hyb') {
+    line([[cx, top + 3], [cx, top + 12]], 1.1, c.stripe);
+    [-1, 1].forEach(s => line([[cx + s * 12, top + 5], [cx + s * 7, top + 8.5], [cx + s * 12, top + 12]], .95, c.stripe));
+    [-8, 2, 12].forEach(dy => {
+      const ey0 = cy + dy, exx = rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2));
+      [-1, 1].forEach(s => line([[cx + s * (exx - .5), ey0], [cx + s * (exx - 9), ey0 + 1.5]], 1.15, c.stripe));
+    });
+  }
+  if (st === 2 && L.lean === 'hyb') { line([[cx, top + 3], [cx, top + 8]], .8, c.out); [-1, 1].forEach(s => line([[cx + s * 7, top + 4], [cx + s * 5, top + 7]], .7, c.out)); }
+  if (baby) { // Eierschale
+    const m = mk(); ell(m, cx, top + 1, 12.5, 7);
+    for (let i = 0; i < N * N; i++) if (m[i] && ((i / N) | 0) > (top + 2.5) * k) m[i] = 0;
+    [-9, -3, 3, 9].forEach(x => tri(m, [cx + x - 3, top + 2.4], [cx + x + 3, top + 2.4], [cx + x, top + 5.5]));
+    paint(m, { fill: '#FBF6EA', mid: '#F3ECDC', shade: '#E7DEC9', deep: '#D3C7AC', out: '#8C93A8', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    spot(cx + 4, top - 2, 1.6, 1.2, '#9CC0FF');
+  }
+  if (items.has('stirnband')) {
+    const b0 = top + ry * .3, b1 = b0 + 5;
+    for (let y = Math.floor(b0 * k); y < b1 * k; y++) for (let x = 0; x < N; x++) {
+      if (!has(body, x, y) || isEdge(body, x, y)) continue;
+      PX(x, y, y < b0 * k + k ? '#F27A7E' : y >= b1 * k - k ? '#B8323A' : '#E5484D');
+    }
+    const by = (b0 + b1) / 2, ex2 = rx * Math.sqrt(1 - ((by - cy) / ry) ** 2);
+    line([[cx + ex2 - 1, by], [cx + ex2 + 6, by + 6]], 1.5, '#E5484D');
+    line([[cx + ex2 - 1, by], [cx + ex2 + 2.5, by + 8]], 1.5, '#D63E44');
+  }
+
+  // Saisonale Fundstücke (Highres)
+  const WHITEP = { fill: '#F6F3EE', mid: '#EEE9E2', shade: '#E0D9CF', deep: '#CBC2B5', out: '#6B6355', hi: '#FFFFFF', hi2: '#FFFFFF' };
+  if (items.has('muetze')) {
+    const hb = top + ry * .42, half = rx * Math.sqrt(Math.max(0, 1 - ((hb - cy) / ry) ** 2));
+    for (let y = 0; y < hb * k; y++) for (let x = 0; x < N; x++) if (has(body, x, y)) PX(x, y, isEdge(body, x, y) ? '#7A1E22' : (Math.floor(x / (2 * k)) % 2 ? '#E5484D' : '#D23D43'));
+    const bm = mk(); cap(bm, cx - half + 1.5, hb, cx + half - 1.5, hb, 2.6, 2.6); paint(bm, WHITEP);
+    const pm = mk(); ell(pm, cx, top - 3, 5, 5); paint(pm, WHITEP);
+  }
+  if (items.has('sonnenhut')) {
+    const STRAW = { fill: '#F2CF7A', mid: '#EAC56E', shade: '#DDB45A', deep: '#C99D45', out: '#7A5A1E', hi: '#FBE3A6', hi2: '#FFF0C8' };
+    const bm = mk(); ell(bm, cx, top + 4, rx * .98, 3.8); paint(bm, STRAW);
+    const cm = mk(); ell(cm, cx, top - 1.5, rx * .5, 6.5); for (let i = 0; i < N * N; i++) if (cm[i] && ((i / N) | 0) > (top + 3.5) * k) cm[i] = 0; paint(cm, STRAW);
+    line([[cx - rx * .5 + 1, top + 2.2], [cx + rx * .5 - 1, top + 2.2]], 1.2, '#E5484D');
+  }
+  if (items.has('kranz')) {
+    [200, 225, 250, 270, 290, 315, 340].forEach((a, i) => {
+      const r = a * Math.PI / 180, fx = cx + Math.cos(r) * rx * .82, fy = cy + Math.sin(r) * ry * .9 + 1;
+      spot(fx + 2.2, fy + 1.2, 1.8, 1, '#5BAE5B');
+      const col = ['#FF9DB0', '#FFFFFF', '#FFD25E'][i % 3];
+      [0, 72, 144, 216, 288].forEach(p => { const q = p * Math.PI / 180; spot(fx + Math.cos(q) * 1.7, fy + Math.sin(q) * 1.7, 1.45, 1.45, col); });
+      spot(fx, fy, 1, 1, i % 3 === 2 ? '#F08A24' : '#FFC93C');
+    });
+  }
+  if (items.has('blatt')) {
+    const LEAF = { fill: '#D9472B', mid: '#CF3F25', shade: '#B9341D', deep: '#962815', out: '#5A1608', hi: '#F06A4A', hi2: '#F58C70' }; // rotes Ahornblatt, hebt sich auch vom orangen Fell ab
+    const bx = cx + rx * .38, by = top + 6, tx = bx + 11, ty = by - 9, mx = (bx + tx) / 2, my = (by + ty) / 2;
+    const m = mk(); cap(m, bx, by, mx, my, .9, 4.4); cap(m, mx, my, tx, ty, 4.4, .7); paint(m, LEAF);
+    line([[bx, by], [tx - 1, ty + 1]], .35, LEAF.deep);
+    line([[bx, by], [bx - 2, by + 2.5]], .45, '#6B2E05');
+  }
+  if (L.shine) {
+    const sp = (x, y, a) => { line([[x - a, y], [x + a, y]], .45, '#7FC4FF'); line([[x, y - a], [x, y + a]], .45, '#7FC4FF'); spot(x, y, .7, .7, '#E3F3FF'); };
+    sp(cx - rx - 4, top + 8, 2.6); sp(cx + rx + 3, top + 18, 2); sp(cx - rx + 2, top - 2, 1.6);
+  }
+
+  // Gesicht
+  const ex = Math.max(10, rx * .44), ey = cy - (baby ? 1 : 3);
+  const eRx = baby ? 4.2 : 4.6, eRy = baby ? 5 : 5.6;
+  const n = kind === 'moro' ? ey + 6 : ey + 9;
+  if (kind === 'kra' || kind === 'hyb') { spot(cx, ey + 14, 11.5 * sc, 7.5, c.bellyS); spot(cx, ey + 13, 11 * sc, 7, c.belly); }
+  if (kind === 'hyb') [-1, 1].forEach(s => spot(cx + s * rx * .62, ey + 12, 5.5, 3.2, c.belly));
+  const blink = f % 28 === 0;
+  const triF = (a, b, d, col) => { const m = mk(); tri(m, a, b, d); fill(m, col); };
+  // Katzengesicht-Varianten (L.catFace 1–3) zum Vergleich; 0/leer = bisheriges Gesicht
+  const catFace = v => {
+    [-1, 1].forEach(s => {
+      const x = cx + s * ex;
+      if (face === 'happy') { line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK); return; }
+      if (face === 'sleep' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
+      if (v === 1) { // Mandelaugen mit grüner Iris und Lidstrich
+        spot(x, ey, 5.2, 4.8, DK); spot(x, ey + .3, 4.1, 3.8, '#6FB33A'); spot(x, ey + 1.7, 3.1, 1.7, '#A6DB68');
+        spot(x, ey + .2, 1.2, 3.3, DK);
+        spot(x - 1.7, ey - 1.6, 1.3, 1.3, '#FFFFFF'); spot(x + 1.6, ey + 2, .6, .6, '#FFFFFF');
+        line([[x + s * 4.6, ey - 1.4], [x + s * 6.6, ey - 3]], .55, DK);
+      } else if (v === 2) { // große Kulleraugen mit zwei Glanzpunkten
+        spot(x, ey + .5, 5.6, 6.4, DK); spot(x, ey + 3.8, 3.8, 1.8, '#3B4C82');
+        spot(x - 1.8, ey - 1.8, 2.3, 2.3, '#FFFFFF'); spot(x + 2.1, ey + 2.6, 1.1, 1.1, '#FFFFFF');
+      } else { // runde Augen mit bernsteinfarbener Iris
+        spot(x, ey, 4.8, 5.4, DK); spot(x, ey + .4, 3.9, 4.5, '#E9A23B'); spot(x, ey + 1.8, 3, 2, '#F6C66C');
+        spot(x, ey + .4, 2.1, 3.3, DK);
+        spot(x - 1.6, ey - 2, 1.5, 1.5, '#FFFFFF'); spot(x + 1.5, ey + 2.4, .6, .6, '#FFFFFF');
+      }
+      if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
+    });
+    if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
+    if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+      const bx = cx + s * Math.max(ex + 8, rx * .72);
+      spot(bx, ey + 11, v === 2 ? 5 : 4, v === 2 ? 2.6 : 2, '#FF9DB0');
+      if (v === 2) [-2, 0, 2].forEach(d => line([[bx + d - .8, ey + 12], [bx + d + .8, ey + 10]], .35, '#F0708C'));
+    });
+    if (v === 3) { [-1, 1].forEach(s => spot(cx + s * 3.2, n + 2.8, 4.3, 3.3, c.belly)); spot(cx, n + 5.6, 2.6, 1.6, c.belly); }
+    if (v === 2) { spot(cx - 1.1, n - .4, 1.5, 1.3, c.nose); spot(cx + 1.1, n - .4, 1.5, 1.3, c.nose); triF([cx - 2.5, n - .2], [cx + 2.5, n - .2], [cx, n + 2.2], c.nose); }
+    else { triF([cx - 2.8, n - 1.3], [cx + 2.8, n - 1.3], [cx, n + 1.5], c.nose); spot(cx - .9, n - .6, .8, .45, '#FFD0DC'); }
+    const m0 = v === 3 ? n + 3.2 : n + 2.6;
+    if (face === 'happy') { spot(cx, n + 7.4, 4.2, 3.4, '#5A2236'); spot(cx, n + 9.2, 2.6, 1.5, '#FF7FA0'); line([[cx, n + 1.5], [cx, n + 4]], lw, DK); }
+    else if (face === 'sad') line([[cx - 4, n + 6.4], [cx - 2, n + 5], [cx + 2, n + 5], [cx + 4, n + 6.4]], lw, DK);
+    else if (face === 'sleep') spot(cx, n + 5.4, 1.3, 1.1, DK);
+    else if (face === 'restless') line([[cx - 3.5, n + 5.4], [cx + 3.5, n + 5.4]], .6, DK);
+    else {
+      line([[cx, n + 1.5], [cx, m0 + 1.6]], lw, DK);
+      line([[cx - 4.4, m0 + 1.6], [cx - 3, m0 + 3], [cx - 1.4, m0 + 3], [cx, m0 + 1.8], [cx + 1.4, m0 + 3], [cx + 3, m0 + 3], [cx + 4.4, m0 + 1.6]], lw, DK);
+      if (v === 2) triF([cx + 1.4, m0 + 2.9], [cx + 3.2, m0 + 2.9], [cx + 2.3, m0 + 5], '#FFFFFF');
+    }
+    if (v === 1) [-1, 1].forEach(s => { line([[cx + s * rx * .6, n], [cx + s * (rx + 6), n - 2.4]], .4, c.out); line([[cx + s * rx * .6, n + 2.2], [cx + s * (rx + 6), n + 3.4]], .4, c.out); });
+    if (v === 2) [-1, 1].forEach(s => [-1.5, 1.5, 4.5].forEach(dy => line([[cx + s * (rx - 1), n + dy * .6], [cx + s * (rx + 5), n + dy - .5]], .45, c.out)));
+    if (v === 3) [-1, 1].forEach(s => {
+      [[4.2, 1.8], [5.6, 3.2], [3.8, 4]].forEach(([dx, dy]) => spot(cx + s * dx, n + dy, .45, .45, c.deep));
+      [-1, 1.4, 3.8].forEach(dy => line([[cx + s * (rx - 2), n + 1.6 + dy * .5], [cx + s * (rx + 6), n + dy]], .4, c.out));
+      const exx = rx * Math.sqrt(1 - ((ey + 14 - cy) / ry) ** 2);
+      const fm = mk(); tri(fm, [cx + s * (exx - 3), ey + 11], [cx + s * (exx - 3), ey + 17], [cx + s * (exx + 2.6), ey + 15]);
+      paint(fm, c);
+    });
+  };
+  if (kind === 'bew' && L.catFace !== 0) catFace(L.catFace || 2); // Standard: Kulleraugen
+  else {
+  [-1, 1].forEach(s => {
+    const x = cx + s * ex;
+    if (face === 'happy') line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK);
+    else if (face === 'sleep' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
+    else {
+      spot(x, ey, eRx, eRy, DK);
+      spot(x - 1.4, ey - 2.2, 1.9, 1.9, '#FFFFFF');
+      spot(x + 1.7, ey + 3, .75, .75, '#FFFFFF');
+      if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
+    }
+  });
+  if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
+  if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+    const bx = cx + s * Math.max(ex + 8, rx * .72);
+    spot(bx, ey + 11, face === 'happy' ? 5.3 : 4.4, face === 'happy' ? 2.7 : 2.2, '#FF9DB0');
+    spot(bx - 1, ey + 10.5, 1.5, .8, '#FFC4CF');
+  });
+  if (kind === 'kra') { spot(cx, n, 4.6, 3, c.nose); spot(cx - 1.6, n - 1, 1.4, .7, '#7A5A48'); }
+  else if (kind !== 'moro') { spot(cx, n, 2.8, 1.9, c.nose); spot(cx - .8, n - .6, .8, .5, '#FFD0DC'); }
+  const animal = kind !== 'moro';
+  if (face === 'happy') {
+    const my = animal ? n + 7 : n + 3;
+    spot(cx, my, 4.5, 3.6, '#5A2236'); spot(cx, my + 2, 2.8, 1.6, '#FF7FA0');
+    if (animal) line([[cx, n + 2.6], [cx, n + 3.6]], lw, DK);
+  } else if (face === 'sad') line([[cx - 4, n + 6], [cx - 2, n + 4.6], [cx + 2, n + 4.6], [cx + 4, n + 6]], lw, DK);
+  else if (face === 'sleep') spot(cx, animal ? n + 5 : n + 2, 1.3, 1.1, DK);
+  else if (face === 'restless') line([[cx - 3.5, animal ? n + 5 : n + 2], [cx + 3.5, animal ? n + 5 : n + 2]], .6, DK);
+  else if (animal) {
+    line([[cx, n + 2.6], [cx, n + 4.6]], lw, DK);
+    line([[cx - 4.2, n + 4.8], [cx - 3, n + 6], [cx - 1.4, n + 6], [cx, n + 4.8], [cx + 1.4, n + 6], [cx + 3, n + 6], [cx + 4.2, n + 4.8]], lw, DK);
+  } else line([[cx - 3.5, n], [cx - 1.5, n + 1.6], [cx + 1.5, n + 1.6], [cx + 3.5, n]], .6, DK);
+  if (kind === 'bew') [-1, 1].forEach(s => [-2.5, .5, 3.5].forEach((dy, i) => line([[cx + s * rx * .8, n + dy * .5], [cx + s * (rx + 7), n + dy - 1 + i * .4]], .45, c.out)));
+  }
+  if (items.has('medaille') && st >= 3) { // Band um den Hals von Seite zu Seite, Medaille tief auf dem Bauch
+    const y0 = cy + 9, my = cy + ry - 6, e0 = rx * Math.sqrt(1 - ((y0 - cy) / ry) ** 2);
+    [-1, 1].forEach(s => {
+      const pts = [[cx + s * (e0 - .5), y0], [cx + s * e0 * .72, y0 + (my - y0) * .45], [cx + s * e0 * .38, y0 + (my - y0) * .8], [cx + s * 2.2, my - 4]];
+      line(pts, 1.6, '#2F5BFF');
+      line(pts.map(([x, y]) => [x, y - .7]), .5, '#7D97FF');
+    });
+    spot(cx, my, 5.4, 5.4, '#9A6A06'); spot(cx, my, 4.6, 4.6, '#F5B82E'); spot(cx, my, 3, 3, '#E9A912');
+    line([[cx, my - 1.8], [cx, my + 1.8]], .45, '#FFE08A'); line([[cx - 1.8, my], [cx + 1.8, my]], .45, '#FFE08A');
+    spot(cx - 2, my - 2.4, 1.2, .8, '#FFF1B8');
+    if (pawKind && !up) bunnyPaws(7.4, my); // Hase, Katze und Tiger halten die Medaille mit beiden Pfoten
+  }
+  ctx.restore();
+
+  if (face === 'sleep') {
+    const z = (x, y, s) => line([[x, y], [x + 4 * s, y], [x, y + 4 * s], [x + 4 * s, y + 4 * s]], .6 * s + .1, '#7C97FF');
+    const q = f % 12;
+    z(cx + rx * .7, top - 4 - q / 1.5, 1);
+    if (q > 5) z(cx + rx * .7 + 7, top - 12 - (q - 6) / 1.5, .75);
+  }
+  if (face === 'happy') {
+    const star = (x, y, big) => { const a = big ? 3.2 : 2.2; line([[x - a, y], [x + a, y]], .5, '#F5B82E'); line([[x, y - a], [x, y + a]], .5, '#F5B82E'); spot(x, y, .8, .8, '#FFE08A'); };
+    const q = f % 8;
+    if (q < 4) { star(16, 28, q % 2 === 0); star(104, 66, q % 2 === 1); }
+    else { star(102, 22, q % 2 === 0); star(14, 70, q % 2 === 1); }
+  }
+}
+
+/* ---------- Zustand & Aktionen ---------- */
+let state, D;
+const $ = id => document.getElementById(id);
+
+// Grafikstil: Highres (240 × 240) oder Retro (40 × 40)
+const isHi = () => (state && state.style) !== 'retro';
+const thumbCache = new Map();
+function drawInto(cv, L, f, cache) {
+  const hi = isHi(), n = hi ? HI_N : 40, draw = hi ? drawPetHi : drawPet;
+  if (cv.width !== n) { cv.width = n; cv.height = n; }
+  const ctx = cv.getContext('2d');
+  if (!cache) { draw(ctx, L, f); return; }
+  const key = (hi ? 'h' : 'r') + JSON.stringify(L);
+  let src = thumbCache.get(key);
+  if (!src) { src = document.createElement('canvas'); src.width = src.height = n; draw(src.getContext('2d'), L, f); thumbCache.set(key, src); }
+  ctx.clearRect(0, 0, n, n); ctx.drawImage(src, 0, 0);
+}
+function renderStyle() { document.querySelectorAll('#styleToggle button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.style === 'hi') === isHi()))); }
+document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener('click', () => {
+  state.style = b.dataset.style; save(); renderStyle(); render(); tick();
+}));
+
+function look(stage, overrides = {}) {
+  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine }, overrides);
+}
+function toast(msg) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3600);
+  while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
+}
+function rollItem(day, force, chance = .35) {
+  const owned = new Set(state.items.map(i => i.id));
+  const pool = [...BASE_ITEMS, seasonItem(seasonOf(dateOf(state, day)))];
+  const free = pool.filter(k => !owned.has(k));
+  if (!free.length) return null;
+  if (!force && Math.random() > chance) return null;
+  const id = force && free.includes(force) ? force : pick(free);
+  state.items.push({ id, day });
+  return id;
+}
+function addWorkout(type, min, int, day) {
+  const before = derive(state);
+  state.workouts.push({ id: 'w' + Date.now() + Math.random().toString(36).slice(2, 6), day, type, min, int });
+  state.paused = false;
+  const after = derive(state);
+  const item = (before.stage === 0 && after.stage >= 1) ? rollItem(day, 'stirnband') : rollItem(day);
+  return { item, before, after };
+}
+function commit() {
+  D = derive(state);
+  if (D.stage >= 3 && !state.line) { state.line = D.line; D = derive(state); }
+  if (D.stage > state.seenStage) {
+    for (let s = state.seenStage + 1; s <= D.stage; s++) if (state.stageDays[s] == null) state.stageDays[s] = state.day;
+    state.seenStage = D.stage;
+    showEvo();
+  }
+  // Tagesquest automatisch abhaken
+  if (!state.paused && !state.questsDone[state.day] && D.quest.check(state, state.day)) {
+    state.questsDone[state.day] = true; D = derive(state);
+    toast(`Tagesquest geschafft: +${QUEST_XP} XP`);
+    const it = rollItem(state.day, null, .5); if (it) toast(`Fundstück: ${ITEMS[it]}!`);
+    confetti(50);
+  }
+  // Persönliche Rekorde feiern (nicht beim allerersten Wert)
+  if (state.recs) {
+    const nr = Object.keys(REC_LABELS).filter(k => D.recs[k] > (state.recs[k] || 0) && (state.recs[k] || 0) > 0);
+    if (nr.length) { toast('Neuer Rekord: ' + nr.map(k => REC_LABELS[k]).join(', ') + '!'); confetti(140); }
+  }
+  state.recs = D.recs;
+  // Wochenbrief, sobald eine Woche abgeschlossen ist
+  if (D.curWeek > (state.letterWeek || 0)) {
+    state.letterWeek = D.curWeek;
+    if (evoOpen) pendingLetter = D.curWeek - 1; else showLetter(D.curWeek - 1);
+  }
+  save(); render();
+}
+
+/* ---------- Wochenbrief ---------- */
+const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? (m % 60) + ' min' : ''}`.trim() : `${m} min`;
+function letterFor(wi) {
+  const s = state, d0 = wi * 7, d1 = d0 + 6, n = s.name;
+  const ws = s.workouts.filter(w => w.day >= d0 && w.day <= d1);
+  const prev = s.workouts.filter(w => w.day >= d0 - 7 && w.day < d0);
+  const mins = ws.reduce((a, w) => a + w.min, 0);
+  const per = {}; ws.forEach(w => per[w.type] = (per[w.type] || 0) + w.min);
+  const fav = Object.entries(per).sort((a, b) => b[1] - a[1])[0];
+  let xpW = 0; for (let d = d0; d <= d1; d++) xpW += D.dayXp[d] || 0;
+  const days = D.weekDays[wi] || 0; xpW += days >= 3 ? 60 : days === 2 ? 25 : 0;
+  for (let d = d0; d <= d1; d++) if (s.questsDone[d]) xpW += QUEST_XP;
+  const water = []; for (let d = d0; d <= d1; d++) if (hp(s, d).water) water.push(hp(s, d).water);
+  const fact = FACTS.filter(x => x.from <= wi + 1).pop();
+  const p = [];
+  p.push(ws.length ? `Du hast diese Woche ${ws.length}-mal trainiert, zusammen ${fmtMin(mins)}. Am meisten ${TYPES[fav[0]].label}.` : 'Diese Woche war ruhig. Das ist in Ordnung, ich warte auf dich.');
+  if (wi > 0 && ws.length) p.push(ws.length > prev.length ? `Das ${ws.length - prev.length === 1 ? 'ist eine Einheit' : `sind ${ws.length - prev.length} Einheiten`} mehr als letzte Woche.` : ws.length === prev.length ? 'Genauso oft wie letzte Woche. Schön beständig.' : 'Etwas weniger als letzte Woche, aber jede Einheit zählt.');
+  if (water.length) p.push(`Im Schnitt hast du ${(water.reduce((a, b) => a + b, 0) / water.length).toFixed(1).replace('.', ',')} Gläser Wasser am Tag getrunken.`);
+  p.push(`In deinem Körper passiert gerade: ${fact.title}. ${fact.text.split('. ')[0]}.`);
+  p.push(`Ich bin dadurch ${xpW} XP gewachsen. Bis nächste Woche!`);
+  return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', ws.length], ['Zeit', fmtMin(mins)], ['XP', xpW]] };
+}
+let pendingLetter = null, letterOpen = false;
+function showLetter(wi) {
+  const L = letterFor(wi);
+  $('letterTitle').textContent = `Post von ${L.sign} · ${L.title}`;
+  $('letterBody').innerHTML = L.paras.map(t => `<p>${t}</p>`).join('') + `<p class="sign">Dein ${L.sign}</p>`;
+  $('letterClose').textContent = `Danke, ${L.sign}`;
+  $('letter').hidden = false; letterOpen = true;
+  setTimeout(() => $('letterClose').focus(), 50);
+}
+
+/* ---------- Konfetti ---------- */
+function confetti(count) {
+  if (reduce) return;
+  const cv = $('confetti'), ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight; cv.hidden = false;
+  const cols = ['#2F5BFF', '#F5B82E', '#E5484D', '#2BB3A0', '#B48CFF', '#FF9DB0'];
+  const ps = Array.from({ length: count }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 120, y: innerHeight * .35, vx: (Math.random() - .5) * 12, vy: -Math.random() * 12 - 4, r: Math.random() * 6, s: 4 + Math.random() * 5, c: pick(cols) }));
+  const t0 = performance.now();
+  const step = t => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ps.forEach(p => { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += .2; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if (t - t0 < 1800) requestAnimationFrame(step); else { cv.hidden = true; ctx.clearRect(0, 0, cv.width, cv.height); }
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- Darstellung ---------- */
+function renderTabs() {
+  const t = state.tab || 'heute';
+  $('main').dataset.tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+}
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  state.tab = b.dataset.tab; save(); renderTabs();
+  const y = $('tabs').getBoundingClientRect().top + scrollY - 8;
+  if (scrollY > y) window.scrollTo(0, y);
+});
+function render() {
+  D = derive(state);
+  renderStyle(); renderTabs();
+  const n = state.name;
+  $('simDay').textContent = `Tag ${state.day + 1} · Woche ${D.curWeek + 1}`;
+  $('sampleNote').hidden = !state.sample;
+  if (document.activeElement !== $('petName')) $('petName').value = n;
+  $('petName').style.width = ($('petName').value.length + 1) + 'ch';
+  $('stageChip').textContent = stageName(D.stage, D.line);
+  const showLine = D.stage >= 1 && D.lean;
+  $('formChip').hidden = !showLine;
+  if (showLine) $('formChip').textContent = D.stage >= 3 ? LINES[D.line].lineName : `Tendenz: ${LINES[D.lean].animal}`;
+  $('moodPill').textContent = D.mood.label;
+  $('moodPill').className = 'mood-pill ' + D.mood.key;
+  $('moodText').textContent = D.mood.text;
+  $('pause').checked = state.paused;
+
+  let label, val, pct;
+  if (D.stage === 0) { const left = 3 - D.count; label = `Noch ${left} ${left === 1 ? 'Training' : 'Trainings'} bis zum Schlüpfen`; val = `${D.count} / 3`; pct = D.count / 3; }
+  else if (D.stage < 4) { const cur = STAGES[D.stage].xp, nx = STAGES[D.stage + 1]; label = `Nächste Stufe: ${stageName(D.stage + 1, D.line || D.lean)}`; val = `${D.xp} / ${nx.xp} XP`; pct = (D.xp - cur) / (nx.xp - cur); }
+  else { label = `Ausgewachsen als ${LINES[D.line].adult}`; val = `${D.xp} XP`; pct = 1; }
+  $('xpLabel').textContent = label; $('xpValue').textContent = val; $('xpBar').style.width = Math.max(0, Math.min(1, pct)) * 100 + '%';
+  [['aus', 'sAus', 'bAus'], ['kra', 'sKra', 'bKra'], ['bew', 'sBew', 'bBew']].forEach(([k, s, b]) => {
+    $(s).textContent = 'Lv ' + (1 + Math.floor(D.stats[k] / 80));
+    $(b).style.width = D.norm[k] * 100 + '%';
+  });
+  $('streak').innerHTML = D.streak ? `<b>${D.streak} ${D.streak === 1 ? 'Woche' : 'Wochen'}</b> in Folge mit 2+ Trainings` : 'Noch keine Serie. Ziel: 2 Trainings pro Woche.';
+
+  $('logDay').textContent = isClean() ? 'Heute' : `Heute · Tag ${state.day + 1}`;
+  updatePreview();
+
+  const wk = D.curWeek + 1;
+  const fact = FACTS.filter(x => x.from <= wk).pop();
+  $('factWeek').textContent = `Woche ${wk} in deinem Körper`;
+  $('factTitle').textContent = fact.title; $('factText').textContent = fact.text;
+  $('weekDots').innerHTML = Array.from({ length: 12 }, (_, i) => `<span class="${i < wk ? 'on' : ''} ${i === 11 ? 'goal' : ''}"></span>`).join('');
+
+  const cols = Math.max(12, D.curWeek + 1);
+  let h = '';
+  for (let w = 0; w < cols; w++) {
+    for (let d = w * 7; d < w * 7 + 7; d++) {
+      const x = D.dayXp[d] || 0;
+      const cls = d > state.day ? 'fut' : x === 0 ? '' : x < 40 ? 'l1' : x < 80 ? 'l2' : 'l3';
+      h += `<div class="c ${cls} ${d === state.day ? 'today' : ''}" title="${dayLabel(d)}: ${x} XP"></div>`;
+    }
+    h += `<div class="wl ${w === 11 ? 'goal' : ''}">W${w + 1}</div>`;
+  }
+  $('heat').innerHTML = h;
+
+  const sb = $('stages'); sb.innerHTML = '';
+  STAGES.forEach((s, i) => {
+    const reached = i <= D.stage;
+    const div = document.createElement('div'); div.className = 'st' + (reached ? '' : ' locked');
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    drawInto(cv, look(i, { face: i === 0 ? 'neutral' : 'content', items: [], count: 0, line: D.line || D.lean, norm: null }), 1, true);
+    const day = i === 0 ? 0 : state.stageDays[i];
+    div.append(cv);
+    div.insertAdjacentHTML('beforeend', `<b>${stageName(i, reached ? D.line : null)}</b><span>${reached ? (day != null ? dayLabel(day) : '') : '?'}</span>`);
+    sb.append(div);
+  });
+  const lb = $('lines'); lb.innerHTML = '';
+  Object.entries(LINES).forEach(([k, l]) => {
+    const mine = D.line === k, lead = !D.line && D.lean === k;
+    const div = document.createElement('div'); div.className = 'ln' + (mine ? ' mine' : D.line ? ' other' : '');
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    drawInto(cv, { stage: 4, line: k, lean: k, face: 'content', norm: null, items: [], count: 0 }, 1, true);
+    div.append(cv);
+    div.insertAdjacentHTML('beforeend', `${mine ? '<em>Deine Linie</em>' : lead ? '<em>führt</em>' : ''}<b>${l.adult}</b><span>${l.stat}</span>`);
+    lb.append(div);
+  });
+  const owned = Object.fromEntries(state.items.map(i => [i.id, i.day]));
+  const season = seasonOf(dateOf(state, state.day));
+  const shown = [...BASE_ITEMS, ...Object.keys(SEASON_ITEMS).filter(k => owned[k] != null || SEASON_ITEMS[k][1] === season)];
+  $('items').innerHTML = shown.map(k => owned[k] != null
+    ? `<button type="button" class="item${state.hidden[k] ? ' off' : ''}" data-item="${k}" aria-pressed="${!state.hidden[k]}"><i></i>${ITEMS[k]} <span class="fine">${state.hidden[k] ? 'abgelegt' : dayLabel(owned[k])}</span></button>`
+    : `<span class="item miss"><i></i>${SEASON_ITEMS[k] ? `Nur im ${SEASON_NAMES[SEASON_ITEMS[k][1]]}: ???` : 'Noch nicht gefunden'}</span>`).join('');
+
+  // Frühere Begleiter
+  $('archiveBox').hidden = !state.archive.length;
+  const ab = $('archive'); ab.innerHTML = '';
+  state.archive.forEach(a => {
+    const div = document.createElement('div'); div.className = 'st';
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    drawInto(cv, { stage: 4, line: a.line, lean: a.line, face: 'content', norm: null, items: [], count: 0 }, 1, true);
+    div.append(cv); div.insertAdjacentHTML('beforeend', `<b>${a.name}</b><span>${LINES[a.line].adult}</span>`);
+    ab.append(div);
+  });
+
+  // Neues Ei nach 12 Wochen als Erwachsener
+  const canEgg = D.stage === 4 && D.curWeek + 1 >= 12;
+  $('newEggBox').hidden = !canEgg;
+  if (canEgg) { $('newEggTitle').textContent = `${n} ist durch!`; $('newEggText').textContent = `12 Wochen geschafft. ${n} zieht ins Album, und ein neues Ei wartet.`; }
+
+  // Tagesquest
+  $('questText').textContent = D.quest.text;
+  $('questState').textContent = D.questDone ? 'geschafft' : 'offen';
+  $('questState').classList.toggle('done', D.questDone);
+
+  // Wasser, Schlaf, Schritte
+  const hd = hp(state, state.day);
+  $('waterOut').textContent = `${Math.min(hd.water || 0, WATER_MAX)} / ${WATER_MAX} Gläser · ${String((Math.min(hd.water || 0, WATER_MAX) * .25).toFixed(2)).replace('.', ',').replace(/0$/, '')} l`;
+  $('glasses').innerHTML = Array.from({ length: WATER_MAX }, (_, i) => `<button type="button" class="glass${i < (hd.water || 0) ? ' full' : ''}${i === WATER_GOAL - 1 ? ' goal' : ''}" data-n="${i + 1}" aria-label="${i + 1} ${i ? 'Gläser' : 'Glas'}"></button>`).join('');
+  document.querySelectorAll('#sleepSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === hd.sleep)));
+  if (document.activeElement !== $('steps')) $('steps').value = hd.steps || '';
+  $('stepsOut').textContent = `+${stepXp(hd.steps)} XP`;
+
+  // Wochenbrief (Vorschau)
+  if (D.curWeek > 0) {
+    const L = letterFor(D.curWeek - 1);
+    $('letterEyebrow').textContent = `Wochenbrief · ${L.title}`;
+    $('letterHead').textContent = `Post von ${n}`;
+    $('letterPreview').innerHTML = `<p>${L.paras[0]}</p><div class="lstats">${L.stats.map(([k, v]) => `<span><b>${v}</b>${k}</span>`).join('')}</div>`;
+    $('letterOpen').hidden = false;
+  } else {
+    $('letterEyebrow').textContent = 'Wochenbrief';
+    $('letterHead').textContent = `Post von ${n}`;
+    $('letterPreview').innerHTML = `<p>Am Ende deiner ersten Woche schreibt dir ${n} einen Brief: was du geschafft hast und was in deinem Körper passiert.</p>`;
+    $('letterOpen').hidden = true;
+  }
+
+  // Messwerte
+  const tests = state.tests.slice().sort((a, b) => a.day - b.day);
+  const first = id => tests.find(t => t[id] != null), latest = id => tests.slice().reverse().find(t => t[id] != null);
+  $('testTable').innerHTML = '<tr><th></th><th>Start</th><th>Jetzt</th><th>Änderung</th></tr>' + TESTS.map(T => {
+    const a = first(T.id), b = latest(T.id);
+    if (!a) return `<tr><th>${T.label}</th><td colspan="3" class="muted">noch kein Wert</td></tr>`;
+    const dv = b[T.id] - a[T.id], good = dv * T.better > 0;
+    const ch = a === b || dv === 0 ? '<span class="muted">–</span>' : `<span class="${good ? 'up' : 'down'}">${dv > 0 ? '+' : '−'}${T.diff(dv)}</span>`;
+    const when = t => `<small>${t.day >= 0 ? dayLabel(t.day) : 'früher'}</small>`;
+    return `<tr><th>${T.label}</th><td>${T.fmt(a[T.id])}${when(a)}</td><td>${a === b ? '–' : T.fmt(b[T.id]) + when(b)}</td><td>${ch}</td></tr>`;
+  }).join('');
+  const wkN = D.curWeek + 1, nextW = TEST_WEEKS.find(w => w >= wkN);
+  const doneThisWeek = state.tests.some(t => Math.floor(t.day / 7) === D.curWeek);
+  const due = TEST_WEEKS.includes(wkN) && !doneThisWeek;
+  $('testDue').hidden = !due;
+  const tb = document.querySelector('#tabs [data-tab="fortschritt"]');
+  tb.querySelector('.dot')?.remove();
+  if (due) tb.insertAdjacentHTML('beforeend', '<span class="dot" title="Test fällig"></span>');
+  $('testHint').textContent = due ? `Woche ${wkN} ist Testwoche: Miss dich einmal, dann siehst du schwarz auf weiß, was sich getan hat.` : nextW ? `Nächste Testwoche: Woche ${nextW}. Messen in Woche 1, 4, 8 und 12.` : 'Alle Testwochen geschafft. Du kannst trotzdem jederzeit messen.';
+
+  // Rekorde
+  const rv = { longest: fmtMin(D.recs.longest), weekMost: `${D.recs.weekMost}×`, streakBest: `${D.recs.streakBest} ${D.recs.streakBest === 1 ? 'Woche' : 'Wochen'}`, dayBest: `${D.recs.dayBest} XP` };
+  $('recs').innerHTML = Object.keys(REC_LABELS).map(k => `<div class="rec"><b>${rv[k]}</b><span>${REC_LABELS[k]}</span></div>`).join('');
+
+  const list = state.workouts.filter(w => w.day <= state.day).slice().sort((a, b) => b.day - a.day).slice(0, 8);
+  $('hist').innerHTML = list.length ? list.map(w => `<li><span class="d">${dayLabel(w.day)}</span><span>${TYPES[w.type].label} <span class="m">· ${w.min} min · ${intLabel(w.int)}</span></span><span class="x">+${xpOf(w)}</span></li>`).join('')
+    : '<li class="empty" style="display:block">Noch keine Trainings. Trag oben dein erstes ein.</li>';
+}
+
+function formVals() {
+  return { type: document.querySelector('input[name="type"]:checked').value, min: +$('dur').value, int: +document.querySelector('input[name="int"]:checked').value };
+}
+function updatePreview() {
+  const v = formVals(); const x = xpOf(v);
+  const top = Object.entries(TYPES[v.type].w).sort((a, b) => b[1] - a[1])[0][0];
+  const today = D.dayXp[state.day] || 0;
+  const room = Math.max(0, DAY_CAP - today);
+  $('durOut').textContent = v.min + ' min';
+  $('xpPreview').innerHTML = room === 0
+    ? `Heute sind schon ${DAY_CAP} XP erreicht. Morgen zählt es wieder voll.`
+    : `≈ <b>${Math.min(x, room)} XP</b> · stärkt vor allem <b>${STAT_NAMES[top]}</b>${x > room ? ` · Tageslimit ${DAY_CAP} XP` : ''}`;
+}
+
+/* ---------- Entwicklung ---------- */
+let evoOpen = false;
+function showEvo() {
+  const s = D.stage, n = state.name;
+  $('evoEyebrow').textContent = `${dayLabel(state.day)} · Stufe ${s} von 4`;
+  const l = D.line ? LINES[D.line] : null;
+  $('evoTitle').textContent = s === 1 ? `${n} ist geschlüpft!` : s === 2 ? `${n} ist jetzt ein Kind` : `${n} ist jetzt ${s === 3 ? l.teenArt : l.adultArt}`;
+  $('evoText').textContent = EVO_TEXT[s](n, l);
+  $('evo').hidden = false; evoOpen = true;
+  setTimeout(() => $('evoClose').focus(), 50);
+}
+$('evoClose').addEventListener('click', () => {
+  $('evo').hidden = true; evoOpen = false;
+  if (pendingLetter != null) { const w = pendingLetter; pendingLetter = null; showLetter(w); }
+});
+$('letterClose').addEventListener('click', () => { $('letter').hidden = true; letterOpen = false; });
+$('letterOpen').addEventListener('click', () => { if (D.curWeek > 0) showLetter(D.curWeek - 1); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (evoOpen) $('evoClose').click(); else if (letterOpen) $('letterClose').click();
+});
+
+/* ---------- Formular aufbauen ---------- */
+$('typeChips').innerHTML = Object.entries(TYPES).map(([k, t], i) =>
+  `<input type="radio" name="type" id="t-${k}" value="${k}" ${i === 0 ? 'checked' : ''}><label for="t-${k}">${t.label}</label>`).join('');
+$('intChips').innerHTML = INT_OPTS.map(([v, l]) =>
+  `<input type="radio" name="int" id="i-${v}" value="${v}" ${v === 3 ? 'checked' : ''}><label for="i-${v}">${l}</label>`).join('');
+$('logForm').addEventListener('input', updatePreview);
+$('logForm').addEventListener('change', updatePreview);
+$('logForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = formVals();
+  const room = Math.max(0, DAY_CAP - (D.dayXp[state.day] || 0));
+  const r = addWorkout(v.type, v.min, v.int, state.day);
+  const gained = r.after.xp - r.before.xp;
+  toast(`${TYPES[v.type].label} eingetragen · +${gained} XP${xpOf(v) > room ? ' (Tageslimit)' : ''}`);
+  if (r.item) toast(`Fundstück: ${ITEMS[r.item]}!`);
+  commit();
+});
+$('petName').addEventListener('input', e => { state.name = e.target.value.trim() || 'Moro'; save(); render(); });
+$('pause').addEventListener('change', e => { state.paused = e.target.checked; toast(state.paused ? `${state.name} macht Pause. Nichts geht verloren.` : `${state.name} ist wieder wach.`); commit(); });
+
+// Fundstücke an- und ablegen
+$('items').addEventListener('click', e => {
+  const b = e.target.closest('button[data-item]'); if (!b) return;
+  const k = b.dataset.item; state.hidden[k] = !state.hidden[k]; if (!state.hidden[k]) delete state.hidden[k];
+  save(); render(); tick();
+});
+// Wasser, Schlaf, Schritte
+const setHealth = (patch) => { state.health[state.day] = Object.assign({}, hp(state, state.day), patch); commit(); tick(); };
+$('glasses').addEventListener('click', e => {
+  const b = e.target.closest('button[data-n]'); if (!b) return;
+  const n = +b.dataset.n, cur = hp(state, state.day).water || 0;
+  setHealth({ water: n === cur ? n - 1 : n });
+  if (n === WATER_GOAL && cur < WATER_GOAL) toast(`${state.name} glänzt: Trinkziel erreicht!`);
+});
+$('sleepSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-v]'); if (!b) return;
+  setHealth({ sleep: hp(state, state.day).sleep === b.dataset.v ? null : b.dataset.v });
+});
+const saveSteps = () => {
+  const v = Math.max(0, Math.min(60000, Math.round(+$('steps').value || 0)));
+  const before = stepXp(hp(state, state.day).steps);
+  setHealth({ steps: v || null });
+  const gained = stepXp(v) - before;
+  if (gained > 0) toast(`${v.toLocaleString('de-DE')} Schritte · +${gained} XP`);
+};
+$('stepsSave').addEventListener('click', saveSteps);
+$('steps').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSteps(); } });
+// Messwerte
+$('testForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const runRaw = $('tRun').value.trim(), m = runRaw.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  const t = { day: state.day };
+  if (m) t.run = (+m[1]) * 60 + (+(m[2] || 0));
+  if ($('tPush').value !== '') t.push = Math.max(0, Math.round(+$('tPush').value));
+  if ($('tRhr').value !== '') t.rhr = Math.round(+$('tRhr').value);
+  if (runRaw && !m) { toast('Laufzeit bitte als Minuten:Sekunden eingeben, z. B. 6:30.'); return; }
+  if (t.run == null && t.push == null && t.rhr == null) { toast('Trag mindestens einen Wert ein.'); return; }
+  const firstOf = id => state.tests.slice().sort((a, b) => a.day - b.day).find(x => x[id] != null);
+  const better = TESTS.filter(T => t[T.id] != null && firstOf(T.id) && (t[T.id] - firstOf(T.id)[T.id]) * T.better > 0);
+  state.tests.push(t); ['tRun', 'tPush', 'tRhr'].forEach(id => $(id).value = '');
+  toast(better.length ? `Besser als am Anfang: ${better.map(T => T.label).join(', ')}!` : 'Messung gespeichert.');
+  if (better.length) confetti(90);
+  commit();
+});
+// Neues Ei nach 12 Wochen
+let eggArmed = null;
+$('newEgg').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!eggArmed) { b.textContent = 'Wirklich? Tippen zum Bestätigen'; eggArmed = setTimeout(() => { b.textContent = 'Neues Ei ausbrüten'; eggArmed = null; }, 3500); return; }
+  clearTimeout(eggArmed); eggArmed = null; b.textContent = 'Neues Ei ausbrüten';
+  const old = state, s = freshState();
+  s.archive = [...old.archive, { name: old.name, line: D.line, days: old.day + 1, xp: D.xp }];
+  s.style = old.style; s.name = 'Moro';
+  s.tests = old.tests.map(t => Object.assign({}, t, { day: t.day - (old.day + 1) }));
+  state = s; thumbCache.clear(); commit();
+  toast(`${old.name} wohnt jetzt im Album. Ein neues Ei liegt bereit.`);
+});
+
+$('nextDay').addEventListener('click', () => {
+  state.day++; commit();
+  if (!state.paused && D.gap === 4) toast(`${state.name} wird schlapp. Eine kurze Einheit hilft.`);
+});
+$('nextWeek').addEventListener('click', () => {
+  const counts = {}; state.workouts.forEach(w => counts[w.type] = (counts[w.type] || 0) + 1);
+  const fav = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  const n = pick([2, 3, 3, 3, 4]);
+  const offs = [1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - .5).slice(0, n).sort((a, b) => a - b);
+  const startXp = derive(state).xp, found = [];
+  state.paused = false;
+  offs.forEach(o => {
+    const day = state.day + o;
+    const saveDay = state.day; state.day = day;
+    const type = fav.length && Math.random() < .55 ? fav[0] : pick(Object.keys(TYPES));
+    const r = addWorkout(type, rnd(5, 12) * 5, pick([1, 3, 3, 4]), day);
+    if (r.item) found.push(ITEMS[r.item]);
+    state.day = saveDay;
+  });
+  for (let o = 1; o <= 7; o++) { // etwas Wasser und Schlaf für die vorgespulten Tage
+    const d = state.day + o;
+    state.health[d] = Object.assign({ water: rnd(3, WATER_MAX), sleep: pick(['gut', 'gut', 'okay', 'schlecht']) }, Math.random() < .5 ? { steps: rnd(30, 110) * 100 } : {}, state.health[d] || {});
+  }
+  state.day += 7;
+  const gained = derive(state).xp - startXp;
+  toast(`Woche vorgespult: ${n} Trainings · +${gained} XP`);
+  if (found.length) toast('Fundstück: ' + found.join(', '));
+  commit();
+});
+let resetArmed = null;
+$('reset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!resetArmed) {
+    b.textContent = 'Wirklich neu starten?'; b.classList.add('danger');
+    resetArmed = setTimeout(() => { b.textContent = 'Neu starten'; b.classList.remove('danger'); resetArmed = null; }, 3500);
+    return;
+  }
+  clearTimeout(resetArmed); resetArmed = null; b.textContent = 'Neu starten'; b.classList.remove('danger');
+  const name = state.name; state = freshState(); state.name = name; commit();
+  toast('Ein neues Ei liegt bereit.');
+});
+
+/* ---------- Animation ---------- */
+let frame = 0;
+const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick() {
+  if (!D) return;
+  const f = reduce ? 1 : frame++;
+  drawInto($('petCanvas'), look(D.stage), f);
+  if (evoOpen) drawInto($('evoCanvas'), look(D.stage, { face: 'happy' }), f);
+}
+
+// Aufgeräumte Ansicht über den Link-Anker #clean
+const isClean = () => REAL_TIME || location.hash === '#clean';
+const applyClean = () => { document.documentElement.classList.toggle('clean', isClean()); if (state) render(); };
+window.addEventListener('hashchange', applyClean);
+document.documentElement.classList.toggle('clean', isClean());
+
+// Im Echtzeit-Modus den heutigen Tag aus dem Startdatum berechnen (nie rückwärts)
+function syncDay() {
+  if (!REAL_TIME || !state) return false;
+  const d = Math.max(state.day, daysSince(state.start));
+  if (d === state.day) return false;
+  state.day = d; return true;
+}
+function boot(data) {
+  state = (data && data.state) || load() || (REAL_TIME ? freshState() : sampleState());
+  D = derive(state);
+  if (syncDay()) commit(); else render();
+  tick();
+  setInterval(tick, 170);
+  if (REAL_TIME) {
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && syncDay()) commit(); });
+    setInterval(() => { if (syncDay()) commit(); }, 60000);
+  }
+}
+if (window.claude && window.claude.hot && typeof window.claude.hot.snapshot === 'function') window.claude.hot.snapshot(() => ({ state }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+</script></body>
+</html>

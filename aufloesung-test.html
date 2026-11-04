@@ -1,0 +1,400 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Moro Auflösungstest</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0;padding:24px 16px;background:#EDF1F7;color:#131A2C;font-family:Figtree,system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:16px}
+h1{font-family:"Bricolage Grotesque",sans-serif;margin:0;font-size:26px}
+.cmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+figure{margin:0;background:#fff;border:1px solid #D7DDE8;border-radius:16px;padding:12px;display:grid;gap:8px;align-content:start}
+canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;background:#DCE5F4;border-radius:12px}
+figcaption b{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;display:block}
+.m{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#586179}
+p{margin:0;color:#586179;font-size:14px;max-width:70ch}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
+.ctl button{font:inherit;font-weight:600;font-size:14px;border:1px solid #D7DDE8;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer}
+.ctl button[aria-pressed="true"]{background:#131A2C;color:#fff;border-color:#131A2C}
+@media(max-width:700px){.cmp{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<h1>Kraftbär: Wie viele Pixel?</h1>
+<div class="ctl">
+  <button type="button" data-face="happy" aria-pressed="true">Stolz</button>
+  <button type="button" data-face="content" aria-pressed="false">Zufrieden</button>
+</div>
+<div class="cmp">
+<figure><canvas id="a" width="40" height="40"></canvas><figcaption><b>40 × 40 · aktuell</b><span class="m">1.600 Pixel · 1 Pixel = 8 px bei 320 px</span></figcaption></figure>
+<figure><canvas id="b" width="120" height="120"></canvas><figcaption><b>120 × 120 · Test</b><span class="m">14.400 Pixel · 1 Pixel ≈ 2,7 px bei 320 px</span></figcaption></figure>
+<figure><canvas id="c" width="240" height="240"></canvas><figcaption><b>240 × 240 · Highres</b><span class="m">57.600 Pixel · 1 Pixel ≈ 1,3 px bei 320 px</span></figcaption></figure>
+</div>
+<p><b>Bewertung:</b> Die 240er-Version hat glattere Kurven, eine weichere Schattierung (eine Stufe mehr) und feinere Details an Mund, Ellenbeuge und Fußsohlen. Auf dem Handy wirkt sie fast wie eine Illustration; der Pixel-Charme geht weitgehend verloren. 120 × 120 ist der Sweetspot: rund und detailliert, aber noch klar Pixel-Art. Mehr als 240 bringt bei einer Anzeige um 300 px nichts Sichtbares mehr, weil ein Pixel dann kleiner als ein Bildschirmpunkt wird.</p>
+</div>
+<script>
+/* ---------- Pixel-Zeichnung ---------- */
+const PAL = {
+  moro: { fill: '#9CC0FF', shade: '#7DA3F0', out: '#2E4590', belly: '#E4EDFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#2E4590' },
+  aus:  { fill: '#FBF8F6', shade: '#E2DAE0', out: '#6A5870', belly: '#FFFFFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#FF7FA0' },
+  kra:  { fill: '#C68D60', shade: '#A56E46', out: '#4A2C18', belly: '#F2D7BA', hi: '#E2B48C', inner: '#EDBB93', nose: '#3A2418' },
+  bew:  { fill: '#FFB168', shade: '#EC9046', out: '#7A3E12', belly: '#FFF0DF', hi: '#FFD6AE', inner: '#FFB3C7', nose: '#FF7FA0', stripe: '#E27A2C' },
+  hyb:  { fill: '#FF9536', shade: '#E8761A', out: '#4A220A', belly: '#FFF7EE', hi: '#FFC48A', inner: '#FFF7EE', nose: '#FF7FA0', stripe: '#24160E' },
+};
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const DARK = '#141B2D', RED = '#E5484D', GOLD = '#F5B82E', WHITE = '#FFFFFF', BLUSH = '#FF9DB0';
+
+function drawPet(ctx, L, f) {
+  ctx.clearRect(0, 0, 40, 40);
+  const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+  const cx = 20 + (L.face === 'restless' && L.stage > 0 ? [0, 1, 0, -1][f % 4] : 0), ground = 34;
+  ctx.fillStyle = 'rgba(19,26,44,.18)';
+  ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1);
+
+  const shape = (rx, ry, egg) => (x, y) => { const r = (egg && y < 0) ? rx * .8 : rx; return (x * x) / (r * r) + (y * y) / (ry * ry) <= 1.1; };
+  const blob = (ox, oy, rx, ry, c, egg, noHi) => {
+    const ins = shape(rx, ry, egg);
+    for (let y = -ry - 1; y <= ry + 1; y++) for (let x = -rx - 1; x <= rx + 1; x++) {
+      if (!ins(x, y)) continue;
+      const edge = !ins(x + 1, y) || !ins(x - 1, y) || !ins(x, y + 1) || !ins(x, y - 1);
+      let col = edge ? c.out : ((x / rx + y / ry) > .6 ? c.shade : c.fill);
+      const hx = -Math.round(rx * .45), hy = -Math.round(ry * .5);
+      if (!noHi && !edge && x === hx && (y === hy || y === hy + 1)) col = c.hi;
+      P(ox + x, oy + y, col);
+    }
+    return ins;
+  };
+  const items = new Set(L.items || []);
+
+  if (L.stage === 0) {
+    const rx = 6, ry = 8, cy = ground - ry - 1;
+    let wob = 0;
+    if (L.face === 'happy' || L.count >= 2) wob = [0, 1, 0, -1][f % 4];
+    else if (L.count === 1) wob = f % 10 < 2 ? [1, -1][f % 2] : 0;
+    const ex = cx + wob;
+    blob(ex, cy, rx, ry, { fill: '#FBF6EA', shade: '#E7DEC9', out: '#8C93A8', hi: '#FFFFFF' }, true);
+    [[-2, -3], [2, 1], [-3, 3], [1, -5], [3, 4]].forEach(([x, y]) => P(ex + x, cy + y, '#7FA7FF'));
+    if (L.count >= 1) [[-4, 0], [-3, -1], [-2, 0], [-1, -1], [0, 0]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    if (L.count >= 2) [[1, -1], [2, 0], [3, -1], [4, 0], [0, 1]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    return;
+  }
+
+  const st = L.stage;
+  const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
+  let c = PAL[kind];
+  if (L.face === 'sad') c = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, mix(v, '#9AA0AE', .4)]));
+  const size = { 1: [5, 4], 2: [6, 6], 3: [7, 7], 4: [8, 8] }[st];
+  const rx = size[0] + (kind === 'kra' ? (st === 4 ? 2 : 1) : kind === 'hyb' && st === 4 ? 1 : 0), ry = size[1];
+  const box = (x, y, w, h) => { const a = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) a.push([x + i, y + j]); return a; };
+  const mask = (pts, col) => {
+    const k = new Set(pts.map(([x, y]) => x + ',' + y)), has = (x, y) => k.has(x + ',' + y);
+    pts.forEach(([x, y]) => P(x, y, (!has(x + 1, y) || !has(x - 1, y) || !has(x, y + 1) || !has(x, y - 1)) ? col.out : col.fill));
+  };
+  const fh = st === 1 ? 1 : 2, fw = st >= 3 ? 3 : 2;
+  const up = f % 4 < 2;
+  const hop = L.face === 'happy' && up ? -1 : 0;
+  const cy = ground - 1 - fh - ry + hop;
+  const ins = shape(rx, ry, false);
+  const topAt = dx => { let ty = -ry - 1; while (!ins(dx, ty) && ty < 0) ty++; return cy + ty; };
+
+  // Gegenstände am Boden
+  if (items.has('hantel') && st >= 2) { const x = cx + rx + 4; R(x, ground - 3, 2, 3, '#3A4256'); R(x + 2, ground - 2, 3, 1, '#9AA3B5'); R(x + 5, ground - 3, 2, 3, '#3A4256'); }
+  { // Gefaltetes Handtuch am Boden, die Trinkflasche steht darauf
+    const towel = items.has('handtuch'), TW = 12, tx = Math.max(1, 20 - rx - TW - 2);
+    let base = ground;
+    if (towel) { // ausgebreitetes Badetuch: zwei Streifen an jedem Ende, Fransen an den Kanten
+      R(tx, ground - 3, TW, 1, '#5FD3C2'); R(tx, ground - 2, TW, 1, '#2BB3A0'); R(tx, ground - 1, TW, 1, '#17675C');
+      [1, 3, TW - 2, TW - 4].forEach(o => R(tx + o, ground - 3, 1, 2, WHITE));
+      [-1, TW].forEach(o => { P(tx + o, ground - 3, '#17675C'); P(tx + o, ground - 1, '#17675C'); });
+      base = ground - 3;
+    }
+    if (items.has('flasche')) {
+      const x = towel ? tx + Math.floor(TW / 2) - 1 : 20 - rx - 7;
+      R(x, base - 5, 3, 5, '#2F5BFF'); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, '#9DB4FF');
+    }
+  }
+
+  // Hinter dem Körper: Schwanz
+  if (kind === 'bew' || kind === 'hyb') {
+    const s = f % 8 < 4 ? 0 : 1;
+    const pts = [[rx - 2, ry - 1], [rx - 1, ry - 2], [rx, ry - 2], [rx + 1, ry - 3], [rx + 2, ry - 4], [rx + 2, ry - 5], [rx + 2, ry - 6], [rx + 1 + s, ry - 7], [rx + s, ry - 8]];
+    pts.forEach(([x, y]) => R(cx + x - 1, cy + y - 1, 3, 3, c.out));
+    pts.forEach(([x, y], i) => P(cx + x, cy + y, kind === 'hyb' ? (i > 2 && i % 2 ? c.stripe : c.fill) : i >= pts.length - 2 ? c.stripe : c.fill));
+  }
+  if (kind === 'aus') blob(cx + rx, cy + ry - 2, 2, 2, c, false, true);
+
+  // Ohren: bei Kind als Andeutung der kommenden Tier-Linie
+  const earKind = st >= 3 ? kind : st === 2 ? L.lean : null;
+  if (earKind === 'aus') {
+    const h = st === 2 ? 3 : st === 3 ? 6 : 8;
+    [-1, 1].forEach(s => {
+      const dx = s * Math.max(2, Math.round(rx * .4));
+      const base = topAt(dx) + 1;
+      for (let i = 0; i < h; i++) {
+        const tilt = st === 4 && s === 1 && i >= h - 3 ? i - (h - 4) : 0;
+        const x = cx + dx - 1 + tilt, y = base - i;
+        if (i === h - 1) { P(x + 1, y, c.out); continue; }
+        P(x, y, c.out); P(x + 2, y, c.out); P(x + 1, y, i >= 1 && i <= h - 3 ? c.inner : c.fill);
+      }
+    });
+  } else if (earKind === 'kra') {
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const oy = topAt(dx) + (st === 2 ? 0 : 1);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy, c.inner); P(cx + dx, oy - 1, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); }
+    });
+  } else if (earKind === 'hyb') { // kleine runde Tigerohren mit hellem Inneren
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - 3);
+      const oy = topAt(dx);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy - 1, c.inner); P(cx + dx, oy, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); P(cx + dx, oy - 2, c.stripe); }
+    });
+  } else if (earKind === 'bew') {
+    const h = st === 2 ? 2 : st === 3 ? 3 : 4;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const base = topAt(dx) + 1;
+      for (let i = 1; i <= h; i++) {
+        const w = Math.round((h - i) * .7), y = base - i;
+        for (let x = -w; x <= w; x++) {
+          const edge = Math.abs(x) === w;
+          P(cx + dx + x, y, edge ? c.out : (Math.abs(x) <= w - 1 && i <= h - 1 ? c.inner : c.fill));
+        }
+      }
+    });
+  }
+
+  // Arme / Pfoten
+  if (kind === 'kra') {
+    // Muskelarme: hängend mit Bizeps, beim Jubeln (Erwachsen auch in Ruhe) im Doppelbizeps
+    const big = st === 4;
+    const flex = (L.face === 'happy' && up) || (big && L.face === 'content');
+    let arm;
+    if (flex) arm = big
+      ? [...box(-1, -1, 6, 3), ...box(1, -2, 3, 1), ...box(3, -7, 3, 6)]
+      : [...box(-1, -1, 5, 2), ...box(1, -2, 2, 1), ...box(2, -5, 3, 4)];
+    else arm = big
+      ? [...box(-1, 0, 4, 7), ...box(3, 1, 1, 3)]
+      : [...box(-1, 0, 3, 5), ...box(2, 1, 1, 2)];
+    [-1, 1].forEach(s => mask(arm.map(([u, v]) => [cx + s * (rx + u), cy + v]), c));
+  } else if (st >= 2 && L.face === 'happy' && up) {
+    [cx - rx - 1, cx + rx].forEach(x => R(x, cy - 2, 2, 2, c.out));
+  }
+
+  // Füße
+  [cx - 1 - fw, cx + 2].forEach(x0 => {
+    const y0 = cy + ry + 1;
+    if (items.has('sneaker') && st >= 2) { R(x0, y0, fw, fh, RED); P(x0 + (x0 < cx ? 0 : fw - 1), y0 + fh - 1, WHITE); return; }
+    R(x0, y0, fw, fh, c.out);
+    if (fw >= 3 && fh >= 2) R(x0 + 1, y0, fw - 2, fh - 1, c.fill);
+  });
+
+  // Körper
+  blob(cx, cy, rx, ry, c, false);
+  if (kind === 'kra') { // Brust-Halbmond und Bauchmuskeln
+    const p = cy + 4;
+    [[-4, 0], [-3, 0], [3, 0], [4, 0], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]].forEach(([x, y]) => P(cx + x, p + y, c.belly));
+    if (st === 4) [[-1, 2], [1, 2], [-1, 3], [1, 3]].forEach(([x, y]) => P(cx + x, p + y, c.shade));
+  }
+  if (st >= 2 && kind !== 'aus' && kind !== 'kra') {
+    const brx = Math.round(rx * .5), bry = 1, by = cy + ry - 2;
+    for (let y = -bry; y <= bry; y++) for (let x = -brx; x <= brx; x++) {
+      const yy = by - cy + y;
+      if ((x * x) / (brx * brx) + (y * y) / (bry * bry) <= 1 && ins(x, yy + 1) && ins(x - 1, yy) && ins(x + 1, yy)) P(cx + x, by + y, c.belly);
+    }
+  }
+  if (kind === 'bew') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe)); }
+  if (kind === 'hyb') { // Tigerstreifen: Stirn und Flanken
+    const t = cy - ry;
+    [[0, 1], [0, 2], [0, 3], [-3, 2], [-2, 2], [2, 2], [3, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe));
+    [1, 3, 5].forEach(dy => {
+      if (dy >= ry - 1) return;
+      let w = rx; while (w > 0 && !ins(w, dy)) w--;
+      const len = dy === 3 ? 3 : 2;
+      for (let i = 1; i <= len; i++) { P(cx - w + i, cy + dy, c.stripe); P(cx + w - i, cy + dy, c.stripe); }
+    });
+  }
+  if (st === 2 && L.lean === 'hyb') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.out)); }
+  if (st === 1) { // Eierschale auf dem Kopf
+    R(cx - 3, cy - ry - 1, 6, 2, '#FBF6EA'); P(cx - 3, cy - ry - 2, '#FBF6EA'); P(cx, cy - ry - 2, '#FBF6EA'); P(cx + 2, cy - ry - 2, '#FBF6EA');
+    R(cx - 3, cy - ry + 1, 6, 1, '#8C93A8');
+  }
+  if (items.has('stirnband')) {
+    const by = cy - ry + 2;
+    for (let x = -rx; x <= rx; x++) if (ins(x, by - cy) && ins(x - 1, by - cy) && ins(x + 1, by - cy)) P(cx + x, by, RED);
+    let w = rx; while (!ins(w, by - cy)) w--;
+    P(cx + w + 1, by + 1, RED); P(cx + w + 2, by + 2, RED);
+  }
+
+  // Gesicht
+  const ex = Math.max(2, Math.round(rx * .42));
+  const eh = st >= 3 ? 3 : 2;
+  const ey = cy - (st >= 3 ? 2 : 1);
+  const my = ey + eh + 1;
+  const face = L.face, blink = f % 28 === 0;
+  const eyes = [cx - ex - 1, cx + ex];
+  if (kind === 'kra' || kind === 'hyb') for (let y = -1; y <= 1; y++) for (let x = -3; x <= 3; x++) if (x * x / 9 + y * y / 2.2 <= 1) P(cx + x, my + y, c.belly);
+  eyes.forEach((x, i) => {
+    if (face === 'happy') { P(x - 1, ey + 1, DARK); P(x, ey, DARK); P(x + 1, ey, DARK); P(x + 2, ey + 1, DARK); }
+    else if (face === 'sleep') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
+    else if (blink) R(x, ey + eh - 1, 2, 1, DARK);
+    else {
+      R(x, ey, 2, eh, DARK); P(x, ey, WHITE);
+      if (eh === 3) P(x + 1, ey + 2, '#6B7BA8');
+      if (face === 'sad') { const l = i === 0; P(l ? x : x + 1, ey - 1, DARK); P(l ? x + 1 : x, ey - 2, DARK); }
+    }
+  });
+  if (face === 'happy' || face === 'content') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
+  if (kind === 'kra') R(cx - 1, my - 1, 3, 1, c.nose);
+  else if (kind !== 'moro') P(cx, my - 1, c.nose);
+  if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
+  else if (face === 'sad') { P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); }
+  else if (face === 'sleep') P(cx, my, DARK);
+  else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
+  else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
+  else if (face === 'content' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
+  else P(cx, my, DARK);
+  if (kind === 'bew') { R(cx - rx - 2, my - 1, 2, 1, c.out); R(cx - rx - 2, my + 1, 2, 1, c.out); R(cx + rx + 1, my - 1, 2, 1, c.out); R(cx + rx + 1, my + 1, 2, 1, c.out); }
+  if (items.has('medaille') && st >= 3) { const y = cy + ry - 2; P(cx - 2, y - 1, '#2F5BFF'); P(cx + 2, y - 1, '#2F5BFF'); R(cx - 1, y, 3, 2, GOLD); P(cx, y, '#FFE08A'); }
+  if (face === 'sad') { P(eyes[0], ey + eh, '#7FC4FF'); P(eyes[0], ey + eh + 1, '#7FC4FF'); }
+  if (face === 'sleep') {
+    const zz = (x, y) => [[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]].forEach(([a, b]) => P(x + a, y + b, '#7C97FF'));
+    const o = f % 12;
+    zz(cx + rx + 1, cy - ry - 1 - Math.floor(o / 3));
+    if (o > 5) zz(cx + rx + 5, cy - ry - 5 - Math.floor((o - 6) / 3));
+  }
+}
+
+
+
+// Bär in beliebiger Auflösung N; alle Maße in 120er-Einheiten, k skaliert
+function drawBear(ctx, N, face, f) {
+  const k = N / 120;
+  ctx.clearRect(0, 0, N, N);
+  const C = { fill: '#C99063', mid: '#BC8258', shade: '#AE754B', deep: '#8C5835', out: '#4A2C18', hi: '#E0AE82', hi2: '#EBBF97', belly: '#F4DCC0', bellyS: '#E2BF98', inner: '#EFC09A', nose: '#3A2418', pink: '#FF9DB0', pinkL: '#FFC4CF' };
+  const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const mk = () => new Uint8Array(N * N);
+  const has = (m, x, y) => x >= 0 && y >= 0 && x < N && y < N && m[y * N + x];
+  const ell = (m, ox, oy, rx, ry) => {
+    ox *= k; oy *= k; rx *= k; ry *= k;
+    for (let y = Math.floor(oy - ry); y <= Math.ceil(oy + ry); y++) for (let x = Math.floor(ox - rx); x <= Math.ceil(ox + rx); x++) {
+      const dx = (x + .5 - ox) / rx, dy = (y + .5 - oy) / ry;
+      if (dx * dx + dy * dy <= 1 && x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = 1;
+    }
+  };
+  const cap = (m, x1, y1, x2, y2, r1, r2) => {
+    const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) * 2 * k) + 1;
+    for (let i = 0; i <= n; i++) { const t = i / n, r = r1 + (r2 - r1) * t; ell(m, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, r, r); }
+  };
+  const t = Math.max(1, Math.round(k));
+  const paint = (m, p) => {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!has(m, x, y)) continue;
+      let edge = false;
+      for (let d = 1; d <= t && !edge; d++) edge = !has(m, x + d, y) || !has(m, x - d, y) || !has(m, x, y + d) || !has(m, x, y - d);
+      let c;
+      const o = v => Math.round(v * k);
+      if (edge) c = p.out;
+      else if (!has(m, x + o(2), y + o(2))) c = p.deep;
+      else if (!has(m, x + o(4), y + o(4))) c = p.shade;
+      else if (k >= 2 && !has(m, x + o(6.5), y + o(6.5))) c = p.mid;
+      else if (k >= 2 && !has(m, x - o(1.6), y - o(1.6))) c = p.hi2;
+      else if (!has(m, x - o(3), y - o(3))) c = p.hi;
+      else c = p.fill;
+      P(x, y, c);
+    }
+  };
+  const fill = (m, col) => { for (let i = 0; i < N * N; i++) if (m[i]) P(i % N, (i / N) | 0, col); };
+  const spot = (ox, oy, rx, ry, col) => { const m = mk(); ell(m, ox, oy, rx, ry); fill(m, col); };
+  const line = (pts, r, col) => { const m = mk(); for (let i = 1; i < pts.length; i++) cap(m, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], r, r); if (pts.length === 1) ell(m, pts[0][0], pts[0][1], r, r); fill(m, col); };
+  const lw = Math.max(.5, .55);   // Linienstärke feiner Details in 120er-Einheiten
+  const cx = 60;
+  const proud = face === 'happy';
+  const up = proud && f % 4 < 2;
+  const hop = up ? -4 : 0, pump = up ? -4 : 0, flexR = up ? 1.2 : 0;
+
+  ctx.fillStyle = 'rgba(19,26,44,.16)';
+  [52, 58, 54, 40].forEach((w0, y) => { const w = (up ? w0 * .8 : w0) * k; ctx.fillRect(Math.round(cx * k - w / 2), Math.round((108 + y) * k), Math.round(w), Math.ceil(k)); });
+
+  ctx.save(); ctx.translate(0, Math.round(hop * k));
+
+  [-1, 1].forEach(s => { const m = mk(); ell(m, cx + s * 14, 103, 10, 6); paint(m, C); });
+  if (k >= 2) [-1, 1].forEach(s => line([[cx + s * 14 - 4, 107.4], [cx + s * 14 + 4, 107.4]], .35, C.shade));
+
+  [-1, 1].forEach(s => {
+    const m = mk();
+    cap(m, cx + s * 26, 76, cx + s * 42, 71 + pump * .4, 8.5, 7.5);
+    ell(m, cx + s * 37, 64 + pump * .4, 9 + flexR, 7.5 + flexR);
+    cap(m, cx + s * 43, 70 + pump * .4, cx + s * 46, 52 + pump, 7.5, 6.5);
+    ell(m, cx + s * 46, 45 + pump, 8.5, 8);
+    paint(m, C);
+    line([[cx + s * 33.5, 71 + pump * .4], [cx + s * 35, 72.2 + pump * .4], [cx + s * 37, 72.2 + pump * .4], [cx + s * 38.5, 71 + pump * .4]], lw, C.shade);
+    spot(cx + s * 46, 48 + pump, 3.6, 2.6, C.bellyS);
+    [[-3.5, 42.5], [0, 41], [3.5, 42.5]].forEach(([dx, y]) => spot(cx + s * 46 + dx, y + pump, 1.4, 1.4, C.bellyS));
+  });
+
+  [-1, 1].forEach(s => { const m = mk(); ell(m, cx + s * 22, 47, 10.5, 10); paint(m, C); spot(cx + s * 22, 47.5, 5.5, 5, C.inner); });
+
+  const body = mk(); ell(body, cx, 70, 32, 29); paint(body, C);
+  spot(45, 53, 5, 3, C.hi);
+  if (k >= 2) spot(44, 52.4, 2.2, 1.2, C.hi2);
+  [[-5, 44], [-4, 43], [-1, 43], [0, 42], [1, 43], [4, 44], [5, 43]].forEach(([x, y]) => line([[cx + x, y]], .6, C.shade));
+
+  spot(cx, 93, 15, 5.5, C.belly);
+  [[-6, 90], [2, 90], [-6, 94], [2, 94]].forEach(([x, y]) => spot(cx + x + 1.75, y + 1.25, 2, 1.45, C.bellyS));
+
+  spot(cx, 81, 11.5, 7.5, C.bellyS);
+  spot(cx, 80, 11, 7, C.belly);
+
+  [-1, 1].forEach(s => {
+    const ex = cx + s * 14;
+    if (proud) line([[ex - 5, 67.6], [ex - 2.5, 65.6], [ex, 65], [ex + 2.5, 65.6], [ex + 5, 67.6]], .95, '#141B2D');
+    else {
+      spot(ex, 67, 4.6, 5.6, '#141B2D');
+      spot(ex - 1.4, 64.8, 1.9, 1.9, '#FFFFFF');
+      spot(ex + 1.7, 70, .75, .75, '#FFFFFF');
+    }
+  });
+
+  [-1, 1].forEach(s => {
+    spot(cx + s * 24, 78, proud ? 5.5 : 4.5, proud ? 2.8 : 2.3, C.pink);
+    spot(cx + s * 24 - 1, 77.5, 1.5, .8, C.pinkL);
+  });
+
+  spot(cx, 76, 4.6, 3, C.nose);
+  spot(cx - 1.6, 75, 1.4, .7, '#7A5A48');
+  if (proud) {
+    spot(cx, 83, 4.5, 3.6, '#5A2236');
+    spot(cx, 85, 2.8, 1.6, '#FF7FA0');
+    line([[cx, 78.6], [cx, 79.6]], lw, '#141B2D');
+  } else {
+    line([[cx, 78.6], [cx, 80.6]], lw, '#141B2D');
+    line([[cx - 4.2, 80.8], [cx - 3, 82], [cx - 1.4, 82], [cx, 80.8], [cx + 1.4, 82], [cx + 3, 82], [cx + 4.2, 80.8]], lw, '#141B2D');
+  }
+  ctx.restore();
+
+  if (proud) {
+    const star = (x, y, big) => { const a = big ? 3.2 : 2.2; line([[x - a, y], [x + a, y]], .5, '#F5B82E'); line([[x, y - a], [x, y + a]], .5, '#F5B82E'); spot(x, y, .8, .8, '#FFE08A'); };
+    const q = f % 8;
+    if (q < 4) { star(16, 28, q % 2 === 0); star(104, 66, q % 2 === 1); }
+    else { star(102, 22, q % 2 === 0); star(14, 70, q % 2 === 1); }
+  }
+}
+
+let face = 'happy', f = 0;
+const a = document.getElementById('a').getContext('2d'), b = document.getElementById('b').getContext('2d'), c = document.getElementById('c').getContext('2d');
+const look40 = () => ({ stage: 4, line: 'kra', lean: 'kra', face, norm: { aus: .5, kra: .5, bew: .5 }, items: [], count: 3 });
+function tick() { drawPet(a, look40(), f); drawBear(b, 120, face, f); drawBear(c, 240, face, f); f++; }
+document.querySelectorAll('.ctl button').forEach(btn => btn.addEventListener('click', () => {
+  face = btn.dataset.face;
+  document.querySelectorAll('.ctl button').forEach(x => x.setAttribute('aria-pressed', String(x === btn)));
+  tick();
+}));
+tick(); window.__timer = setInterval(tick, 170);
+</script></body></html>

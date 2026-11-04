@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Moro App-Icons</title>
+<style>
+body { margin: 0; padding: 24px; background: #0D1220; color: #E7EBF5; font-family: system-ui, sans-serif; }
+.row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+figure { margin: 0; display: grid; gap: 6px; justify-items: center; font-size: 12px; color: #98A1B7; }
+canvas { border-radius: 18%; background: #0D1220; }
+</style></head><body>
+<h1>Moro App-Icons</h1>
+<p id="st">Erzeuge Icons …</p>
+<div class="row" id="row"></div>
+<script>
+/*DRAW*/
+// [Dateiname, Größe, Anteil der Figur an der Kantenlänge]
+const SIZES = [['icon-32.png', 32, .92], ['apple-touch-icon.png', 180, .8], ['icon-192.png', 192, .8], ['icon-512.png', 512, .8], ['maskable-512.png', 512, .58]];
+
+// Moro als Kind mit Stirnband, zugeschnitten auf die sichtbaren Pixel
+const src = document.createElement('canvas'); src.width = src.height = 240;
+drawPetHi(src.getContext('2d'), { stage: 2, line: null, lean: null, face: 'content', norm: null, items: ['stirnband'], count: 3 }, 1);
+const px = src.getContext('2d').getImageData(0, 0, 240, 240).data;
+let x0 = 240, y0 = 240, x1 = 0, y1 = 0;
+for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) if (px[(y * 240 + x) * 4 + 3] > 200) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+
+function make(size, share) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#0D1220'; ctx.fillRect(0, 0, size, size);
+  const g = ctx.createRadialGradient(size / 2, size * .42, size * .04, size / 2, size * .5, size * .62);
+  g.addColorStop(0, '#2C3D6E'); g.addColorStop(1, '#0D1220');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  const s = share * size / Math.max(bw, bh), w = bw * s, h = bh * s;
+  ctx.imageSmoothingEnabled = s < 1;
+  ctx.drawImage(src, x0, y0, bw, bh, (size - w) / 2, (size - h) / 2 + size * .02, w, h);
+  return cv;
+}
+
+(async () => {
+  const done = [];
+  for (const [name, size, share] of SIZES) {
+    const cv = make(size, share);
+    const fig = document.createElement('figure'); fig.append(cv); fig.insertAdjacentHTML('beforeend', `<figcaption>${name}</figcaption>`);
+    document.getElementById('row').append(fig);
+    try {
+      const r = await fetch('/__save-icon?name=' + encodeURIComponent(name), { method: 'POST', body: cv.toDataURL('image/png') });
+      done.push(r.ok ? name : name + ' (Fehler ' + r.status + ')');
+    } catch (e) { done.push(name + ' (nicht gespeichert: nur über tools/serve.ps1 möglich)'); }
+  }
+  document.getElementById('st').textContent = 'Fertig: ' + done.join(', ');
+  window.__iconsDone = done;
+})();
+</script>
+</body></html>
