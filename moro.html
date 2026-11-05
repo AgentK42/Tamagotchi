@@ -27,6 +27,18 @@
   --shadow: 0 1px 2px rgba(19,26,44,.06), 0 8px 24px rgba(19,26,44,.06);
   color-scheme: light;
 }
+/* Einstellung „Wie Gerät“: folgt dem hellen oder dunklen Modus des Systems */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --bg: #EDF1F7; --surface: #FFFFFF; --ink: #131A2C; --muted: #586179; --line: #D7DDE8;
+    --accent: #2F5BFF; --accent-ink: #FFFFFF; --accent-soft: #E3E9FF; --gold: #E9A912;
+    --stage: #DCE5F4; --lane: rgba(255,255,255,.75); --track: #C9D4E8;
+    --heat0: #E2E7F0; --heat1: #BCCBFF; --heat2: #7D97FF; --heat3: #2F5BFF;
+    --good: #16865B; --warn: #B26A00; --bad: #C93A3A;
+    --shadow: 0 1px 2px rgba(19,26,44,.06), 0 8px 24px rgba(19,26,44,.06);
+    color-scheme: light;
+  }
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -65,12 +77,29 @@ button, input { font: inherit; color: inherit; }
 .grid[data-tab="fortschritt"] { grid-template-areas: "letter body" "tests records"; }
 .grid[data-tab="verlauf"] { grid-template-areas: "cal cal" "hist hist"; }
 .grid[data-tab="sammlung"] { grid-template-areas: "album album"; }
+.grid[data-tab="einstellungen"] { grid-template-areas: "sprofile sbackup" "sitems sbackup"; }
 .grid[data-tab="heute"] > .card:not(.pet, .quest, .log, .health),
 .grid[data-tab="fortschritt"] > .card:not(.letterc, .bodyc, .tests, .records),
 .grid[data-tab="verlauf"] > .card:not(.cal, .hist),
-.grid[data-tab="sammlung"] > .card:not(.album) { display: none; }
+.grid[data-tab="sammlung"] > .card:not(.album),
+.grid[data-tab="einstellungen"] > .card:not(.s-profile, .s-items, .s-backup) { display: none; }
+.s-profile { grid-area: sprofile; } .s-items { grid-area: sitems; } .s-backup { grid-area: sbackup; }
+/* Einstellungen */
+.toggles { list-style: none; margin: 0; padding: 0; display: grid; }
+.toggles li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.toggles li:last-child { border-bottom: none; }
+.toggles .t-name { display: grid; } .toggles .t-name span { font-size: 12px; color: var(--muted); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.s-backup input[type="file"] { max-width: 100%; font-size: 14px; color: var(--muted); }
+.s-backup textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; font-family: var(--f-mono); font-size: 12px; margin-block: 8px; }
+.s-backup details summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.confirm { background: var(--accent-soft); border-radius: 12px; padding: 12px; display: grid; gap: 10px; font-size: 14px; }
+.danger-zone { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
+.btn.danger-btn { border-color: var(--bad); color: var(--bad); }
+.tabs .gear { display: grid; place-items: center; }
+.tabs .gear svg { width: 20px; height: 20px; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 44px; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .tabs button { position: relative; border: none; background: transparent; color: var(--muted); font: inherit; font-weight: 700; font-size: 14px; padding: 9px 6px; border-radius: 10px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
 .tabs .dot { position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
@@ -143,8 +172,12 @@ button.item.off i { background: var(--heat0); }
   .grid[data-tab="fortschritt"] { grid-template-areas: "letter" "body" "tests" "records"; }
   .grid[data-tab="verlauf"] { grid-template-areas: "cal" "hist"; }
   .grid[data-tab="sammlung"] { grid-template-areas: "album"; }
+  .grid[data-tab="einstellungen"] { grid-template-areas: "sprofile" "sitems" "sbackup"; }
 }
-@media (max-width: 480px) { .tabs button { font-size: 13px; padding: 9px 2px; } }
+@media (max-width: 480px) {
+  .tabs { grid-template-columns: auto auto auto auto 40px; justify-content: space-between; }
+  .tabs button { font-size: 12.5px; padding: 9px 7px; white-space: nowrap; overflow-wrap: normal; }
+}
 .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .card h2 { font-size: 20px; font-weight: 700; }
 
@@ -309,6 +342,9 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     <button type="button" role="tab" data-tab="fortschritt" aria-selected="false">Fortschritt</button>
     <button type="button" role="tab" data-tab="verlauf" aria-selected="false">Verlauf</button>
     <button type="button" role="tab" data-tab="sammlung" aria-selected="false">Sammlung</button>
+    <button type="button" role="tab" data-tab="einstellungen" aria-selected="false" aria-label="Einstellungen" title="Einstellungen" class="gear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </nav>
   <main class="grid" id="main" data-tab="heute">
     <section class="card pet" aria-label="Dein Begleiter">
@@ -451,6 +487,61 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
       </div>
       <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
       <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
+    </section>
+
+    <section class="card s-profile" aria-label="Name und Darstellung">
+      <div><p class="eyebrow">Einstellungen</p><h2>Name und Darstellung</h2></div>
+      <div>
+        <label class="lbl" for="setName">Name deines Begleiters</label>
+        <div class="steps-row"><input id="setName" maxlength="12" autocomplete="off" placeholder="Moro"><button class="btn" id="setNameSave" type="button">Speichern</button></div>
+      </div>
+      <div>
+        <p class="lbl">Farbschema</p>
+        <div class="seg" id="themeSeg" role="group" aria-label="Farbschema">
+          <button type="button" data-v="dark">Dunkel</button>
+          <button type="button" data-v="light">Hell</button>
+          <button type="button" data-v="system">Wie Gerät</button>
+        </div>
+      </div>
+      <div>
+        <p class="lbl">Grafik</p>
+        <div class="seg" id="gfxSeg" role="group" aria-label="Grafikstil">
+          <button type="button" data-v="hi">Highres</button>
+          <button type="button" data-v="retro">Retro</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card s-items" aria-label="Fundstücke ein- und ausblenden">
+      <div><p class="eyebrow">Fundstücke</p><h2>Ein- und ausblenden</h2></div>
+      <ul class="toggles" id="itemToggles"></ul>
+    </section>
+
+    <section class="card s-backup" aria-label="Backup">
+      <div><p class="eyebrow">Deine Daten</p><h2>Backup</h2></div>
+      <p class="fine" id="backupInfo"></p>
+      <div class="btn-row">
+        <button class="btn" id="bkDownload" type="button">Backup herunterladen</button>
+        <button class="btn" id="bkCopy" type="button">Backup kopieren</button>
+      </div>
+      <div>
+        <label class="lbl" for="bkFile">Backup-Datei wiederherstellen</label>
+        <input type="file" id="bkFile" accept="application/json,.json">
+      </div>
+      <details>
+        <summary>Backup als Text einfügen</summary>
+        <textarea id="bkText" placeholder="Kopierten Backup-Text hier einfügen"></textarea>
+        <button class="btn" id="bkPaste" type="button">Text prüfen</button>
+      </details>
+      <div class="confirm" id="bkConfirm" hidden>
+        <p id="bkConfirmText"></p>
+        <div class="btn-row"><button class="btn primary" id="bkApply" type="button" style="width:auto">Aktuellen Stand ersetzen</button><button class="btn" id="bkCancel" type="button">Abbrechen</button></div>
+      </div>
+      <div class="danger-zone">
+        <p class="lbl">Neu anfangen</p>
+        <p class="fine">Löscht Trainings, Fundstücke, Messwerte und Album auf diesem Gerät. Name und Darstellung bleiben.</p>
+        <div><button class="btn danger-btn" id="bkReset" type="button">Alles zurücksetzen</button></div>
+      </div>
     </section>
 
     <section class="card hist" aria-label="Letzte Trainings">
@@ -1485,7 +1576,7 @@ $('tabs').addEventListener('click', e => {
 });
 function render() {
   D = derive(state);
-  renderStyle(); renderTabs();
+  renderStyle(); renderTabs(); applyTheme(); renderSettings();
   const n = state.name;
   $('simDay').textContent = `Tag ${state.day + 1} · Woche ${D.curWeek + 1}`;
   $('sampleNote').hidden = !state.sample;
@@ -1786,6 +1877,82 @@ $('reset').addEventListener('click', e => {
   clearTimeout(resetArmed); resetArmed = null; b.textContent = 'Neu starten'; b.classList.remove('danger');
   const name = state.name; state = freshState(); state.name = name; commit();
   toast('Ein neues Ei liegt bereit.');
+});
+
+/* ---------- Einstellungen ---------- */
+function applyTheme() {
+  const t = (state && state.theme) || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  const light = t === 'light' || (t === 'system' && matchMedia('(prefers-color-scheme: light)').matches);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#EDF1F7' : '#0D1220');
+}
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => applyTheme());
+function renderSettings() {
+  if (document.activeElement !== $('setName')) $('setName').value = state.name;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (state.theme || 'dark'))));
+  document.querySelectorAll('#gfxSeg button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'hi') === isHi())));
+  const owned = state.items.slice().sort((a, b) => a.day - b.day);
+  $('itemToggles').innerHTML = owned.length ? owned.map(i => `<li><span class="t-name"><b>${ITEMS[i.id]}</b><span>gefunden ${dayLabel(i.day)}</span></span><label class="switch"><input type="checkbox" data-item="${i.id}" ${state.hidden[i.id] ? '' : 'checked'} aria-label="${ITEMS[i.id]} anzeigen"> ${state.hidden[i.id] ? 'aus' : 'an'}</label></li>`).join('')
+    : '<li class="fine">Noch keine Fundstücke. Sie tauchen nach dem Training zufällig auf.</li>';
+  $('backupInfo').textContent = (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
+    + 'Deine Daten liegen nur auf diesem Gerät. Ein Backup schützt sie, wenn du den Browser-Speicher leerst oder das Handy wechselst.';
+  $('bkDownload').hidden = !REAL_TIME; // Downloads sind im Artefakt-Fenster gesperrt
+}
+$('setNameSave').addEventListener('click', () => { state.name = $('setName').value.trim() || 'Moro'; commit(); toast(`Dein Begleiter heißt jetzt ${state.name}.`); });
+$('setName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('setNameSave').click(); } });
+$('themeSeg').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; state.theme = b.dataset.v; save(); applyTheme(); render(); });
+$('gfxSeg').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; state.style = b.dataset.v; save(); render(); tick(); });
+$('itemToggles').addEventListener('change', e => {
+  const k = e.target.dataset.item; if (!k) return;
+  if (e.target.checked) delete state.hidden[k]; else state.hidden[k] = true;
+  save(); render(); tick();
+});
+// Backup
+const backupText = () => JSON.stringify({ app: 'moro', v: 1, exported: new Date().toISOString(), state });
+const markBackup = () => { state.lastBackup = new Date().toISOString(); save(); renderSettings(); };
+$('bkDownload').addEventListener('click', () => {
+  const blob = new Blob([backupText()], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${state.name.toLowerCase()}-backup-${localIso()}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  markBackup(); toast('Backup heruntergeladen.');
+});
+$('bkCopy').addEventListener('click', () => {
+  const txt = backupText();
+  const fallback = () => { const d = $('bkCopy').closest('.card').querySelector('details'); d.open = true; $('bkText').value = txt; $('bkText').select(); toast('Kopieren nicht erlaubt: Text ist markiert, bitte selbst kopieren.'); };
+  try { navigator.clipboard.writeText(txt).then(() => { markBackup(); toast('Backup in die Zwischenablage kopiert. Speichere es z. B. in einer Notiz.'); }, fallback); } catch (e) { fallback(); }
+});
+let pendingRestore = null;
+function prepareRestore(text) {
+  let obj; try { obj = JSON.parse(text); } catch (e) { toast('Das ist kein gültiges Backup. Bitte den ganzen Text bzw. die .json-Datei verwenden.'); return; }
+  const s = obj && (obj.state || obj);
+  if (!s || s.v !== 1 || !Array.isArray(s.workouts) || !Array.isArray(s.items)) { toast('Das Backup passt nicht zu Moro.'); return; }
+  const f = freshState(); for (const k in f) if (s[k] === undefined) s[k] = f[k];
+  pendingRestore = s;
+  const when = obj.exported ? new Date(obj.exported).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : 'unbekannt';
+  $('bkConfirmText').textContent = `Backup von ${s.name} vom ${when}: ${s.workouts.length} Trainings, ${s.items.length} Fundstücke, ${(s.archive || []).length} frühere Begleiter. Den aktuellen Stand damit ersetzen?`;
+  $('bkConfirm').hidden = false;
+}
+$('bkFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  const r = new FileReader(); r.onload = () => prepareRestore(String(r.result)); r.readAsText(file);
+  e.target.value = '';
+});
+$('bkPaste').addEventListener('click', () => prepareRestore($('bkText').value.trim()));
+$('bkCancel').addEventListener('click', () => { pendingRestore = null; $('bkConfirm').hidden = true; });
+$('bkApply').addEventListener('click', () => {
+  if (!pendingRestore) return;
+  state = pendingRestore; pendingRestore = null; $('bkConfirm').hidden = true; $('bkText').value = '';
+  syncDay(); thumbCache.clear(); applyTheme(); commit(); tick();
+  toast(`Backup wiederhergestellt. Willkommen zurück, ${state.name}!`);
+});
+let wipeArmed = null;
+$('bkReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!wipeArmed) { b.textContent = 'Wirklich alles löschen? Nochmal tippen'; wipeArmed = setTimeout(() => { b.textContent = 'Alles zurücksetzen'; wipeArmed = null; }, 4000); return; }
+  clearTimeout(wipeArmed); wipeArmed = null; b.textContent = 'Alles zurücksetzen';
+  const keep = { name: state.name, theme: state.theme, style: state.style, tab: state.tab };
+  state = Object.assign(freshState(), keep); thumbCache.clear(); commit(); tick();
+  toast('Alles zurückgesetzt. Ein neues Ei liegt bereit.');
 });
 
 /* ---------- Animation ---------- */
