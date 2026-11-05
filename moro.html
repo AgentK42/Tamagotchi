@@ -74,12 +74,12 @@ button, input { font: inherit; color: inherit; }
 .grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
 /* Tabs: jede Gruppe hat ihr eigenes Raster, Karten anderer Gruppen sind ausgeblendet */
 .grid[data-tab="heute"] { grid-template-areas: "pet quest" "pet log" "pet health"; }
-.grid[data-tab="fortschritt"] { grid-template-areas: "letter body" "tests records"; }
+.grid[data-tab="fortschritt"] { grid-template-areas: "goals goals" "letter body" "tests records"; }
 .grid[data-tab="verlauf"] { grid-template-areas: "cal cal" "hist hist"; }
 .grid[data-tab="sammlung"] { grid-template-areas: "album album"; }
 .grid[data-tab="einstellungen"] { grid-template-areas: "sprofile sbackup" "sitems sbackup"; }
 .grid[data-tab="heute"] > .card:not(.pet, .quest, .log, .health),
-.grid[data-tab="fortschritt"] > .card:not(.letterc, .bodyc, .tests, .records),
+.grid[data-tab="fortschritt"] > .card:not(.goalsc, .letterc, .bodyc, .tests, .records),
 .grid[data-tab="verlauf"] > .card:not(.cal, .hist),
 .grid[data-tab="sammlung"] > .card:not(.album),
 .grid[data-tab="einstellungen"] > .card:not(.s-profile, .s-items, .s-backup) { display: none; }
@@ -116,7 +116,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); min-width: 0; display: grid; gap: 14px; }
 .pet { grid-area: pet; }
 .log { grid-area: log; } .bodyc { grid-area: body; } .cal { grid-area: cal; } .album { grid-area: album; } .hist { grid-area: hist; }
-.quest { grid-area: quest; } .health { grid-area: health; } .letterc { grid-area: letter; } .tests { grid-area: tests; } .records { grid-area: records; }
+.goalsc { grid-area: goals; } .quest { grid-area: quest; } .health { grid-area: health; } .letterc { grid-area: letter; } .tests { grid-area: tests; } .records { grid-area: records; }
 
 /* Tagesquest */
 .quest-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -133,6 +133,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .seg button { border: none; background: transparent; padding: 7px 14px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.pickseg { display: flex; flex-wrap: wrap; gap: 6px; }
+.pickseg button { border: 1px solid var(--line); background: transparent; border-radius: 10px; padding: 7px 12px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.pickseg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.goals { display: grid; gap: 14px; }
+.goal { display: grid; gap: 6px; }
+.goal.done .bar > i { background: #2FA58E; }
+.goal.done .xp-row span:first-child::after { content: ' \2713'; color: #2FA58E; font-weight: 700; }
+.goal .gv { color: var(--ink); font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .steps-row { display: flex; gap: 8px; }
 .steps-row input, .test-form input { flex: 1 1 auto; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; font-family: var(--f-mono); font-size: 14px; }
 /* Wochenbrief */
@@ -179,7 +187,7 @@ button.item.off i { background: var(--heat0); }
 @media (max-width: 860px) {
   .grid { grid-template-columns: minmax(0, 1fr); }
   .grid[data-tab="heute"] { grid-template-areas: "pet" "quest" "log" "health"; }
-  .grid[data-tab="fortschritt"] { grid-template-areas: "letter" "body" "tests" "records"; }
+  .grid[data-tab="fortschritt"] { grid-template-areas: "goals" "letter" "body" "tests" "records"; }
   .grid[data-tab="verlauf"] { grid-template-areas: "cal" "hist"; }
   .grid[data-tab="sammlung"] { grid-template-areas: "album"; }
   .grid[data-tab="einstellungen"] { grid-template-areas: "sprofile" "sitems" "sbackup"; }
@@ -429,6 +437,15 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
       </div>
     </section>
 
+    <section class="card goalsc" aria-label="Wochenziele">
+      <div class="quest-row">
+        <div><p class="eyebrow" id="goalsEyebrow">Woche 1</p><h2>Wochenziele</h2></div>
+        <span class="q-state" id="goalsState">0 / 4</span>
+      </div>
+      <div class="goals" id="goals"></div>
+      <p class="fine">Zählt von Tag 1 bis 7 der laufenden Woche. Schlaf zählt, wenn du „gut“ einträgst.</p>
+    </section>
+
     <section class="card letterc" aria-label="Wochenbrief">
       <div><p class="eyebrow" id="letterEyebrow">Wochenbrief</p><h2 id="letterHead">Post von Moro</h2></div>
       <div class="paper stamped" id="letterPreview"></div>
@@ -498,7 +515,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
       <div>
         <p class="eyebrow" style="margin-bottom:8px">Vier Tier-Linien · ab Stufe Teen</p>
         <div class="lines" id="lines"></div>
-        <p class="fine" style="margin-top:8px">Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.</p>
+        <p class="fine" id="linesNote" style="margin-top:8px">Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.</p>
       </div>
       <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
       <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
@@ -522,6 +539,11 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <p class="lbl">Neues Ei</p>
         <p class="fine" id="eggSetText"></p>
         <div><button class="btn" id="eggSetBtn" type="button">Neues Ei ausbrüten</button></div>
+        <div id="setPickBox" hidden>
+          <p class="lbl" style="margin-top:12px">Tier dieses Eis</p>
+          <div class="pickseg" id="setPickSeg" role="group" aria-label="Tier dieses Eis"></div>
+          <p class="fine" id="setPickText"></p>
+        </div>
       </div>
       <div>
         <p class="lbl">Grafik</p>
@@ -586,6 +608,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     <p class="eyebrow">12 Wochen geschafft</p>
     <h2 id="eggAskTitle"></h2>
     <p id="eggAskText"></p>
+    <p class="lbl" style="margin:4px 0 6px">Welches Tier soll schlüpfen?</p>
+    <div class="pickseg" id="eggPickSeg" role="group" aria-label="Tier des neuen Eis" style="justify-content:center;margin-bottom:12px"></div>
     <div class="btn-row" style="justify-content:center">
       <button class="btn primary" id="eggYes" type="button" style="width:auto">Ja, neues Ei</button>
       <button class="btn" id="eggNo" type="button"></button>
@@ -607,6 +631,10 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     <h2 id="evoTitle"></h2>
     <p id="evoText"></p>
     <button class="btn primary" id="evoClose" type="button">Weiter</button>
+    <div id="evoChoose" hidden style="width:100%">
+      <p class="lbl" style="margin:4px 0 6px">Ich möchte lieber folgendes Tier:</p>
+      <div class="pickseg" id="evoPickSeg" role="group" aria-label="Anderes Tier wählen" style="justify-content:center"></div>
+    </div>
   </div>
 </div>
 
@@ -646,7 +674,15 @@ const LINES = {
   bew: { stat: 'Beweglichkeit', animal: 'Katze', lineName: 'Katzen-Linie', teen: 'Kätzchen', adult: 'Flowkatze', teenArt: 'ein Kätzchen', adultArt: 'eine Flowkatze', sports: 'Yoga' },
   hyb: { stat: 'Ausgewogen', animal: 'Tiger', lineName: 'Tiger-Linie', teen: 'Tigerjunges', adult: 'Hybridtiger', teenArt: 'ein Tigerjunges', adultArt: 'ein Hybridtiger', sports: 'gemischtes Training' },
 };
-const lineReason = l => l.animal === 'Tiger' ? 'Du trainierst ausgewogen' : `${l.stat} liegt bei dir vorne`;
+const lineReason = l => (state.pick || state.lineChosen) ? `Du hast die ${l.lineName} gewählt` : l.animal === 'Tiger' ? 'Du trainierst ausgewogen' : `${l.stat} liegt bei dir vorne`;
+const PICKS = [['auto', 'Nach Training'], ['aus', 'Hase'], ['kra', 'Bär'], ['bew', 'Katze'], ['hyb', 'Tiger']];
+// Wochenziele (Woche = 7 Tage ab Tag 1)
+const WEEK_GOALS = [
+  { id: 'n', label: 'Trainings', goal: 3, fmt: v => `${v}` },
+  { id: 'min', label: 'Trainingsminuten', goal: 150, fmt: v => `${v} min` },
+  { id: 'steps', label: 'Schritte pro Tag (Ø der Woche)', goal: 6000, fmt: v => v.toLocaleString('de-DE') },
+  { id: 'sleep', label: 'Tage mit gutem Schlaf', goal: 4, fmt: v => `${v}` },
+];
 const stageName = (s, line) => s >= 3 && line ? LINES[line][s === 3 ? 'teen' : 'adult'] : STAGES[s].name;
 const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Sneaker', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
 const BASE_ITEMS = Object.keys(ITEMS);
@@ -694,7 +730,7 @@ const FACTS = [
 const EVO_TEXT = {
   1: n => `Drei Trainings geschafft. Genau hier hören die meisten wieder auf. ${n} ist geschlüpft, weil du weitergemacht hast.`,
   2: n => `${n} wächst, und deine Muskeln bauen gerade neue Mitochondrien. Achte auf die kleinen Ohren: Sie verraten, welches Tier aus ${n} wird.`,
-  3: (n, l) => `${lineReason(l)}, deshalb wird ${n} ${l.teenArt}. Wer anders trainiert, bekommt ein anderes Tier.`,
+  3: (n, l) => `${lineReason(l)}, deshalb wird ${n} ${l.teenArt}.${(state.pick || state.lineChosen) ? '' : ' Wer anders trainiert, bekommt ein anderes Tier.'}`,
   4: (n, l) => `Ausgewachsen als ${l.adult}. Was ${n} in diesen Wochen geworden ist, siehst du bald auch an dir selbst.`,
 };
 
@@ -709,7 +745,7 @@ const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
 function freshState() {
   return { v: 1, name: 'Moro', day: 0, workouts: [], items: [], paused: false, sample: false, seenStage: 0, stageDays: {}, line: null,
-    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null, seenMaster: 0, eggAsked: false };
+    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null, seenMaster: 0, eggAsked: false, pick: null, goalsDone: {} };
 }
 function sampleState() {
   const plan = [[0,'laufen',25,2],[2,'yoga',30,2],[4,'laufen',30,3],[7,'kraft',40,3],[9,'laufen',35,3],[11,'rad',50,2],[14,'laufen',40,3],[15,'kraft',45,3],[17,'laufen',45,4]];
@@ -781,7 +817,8 @@ function derive(s) {
   const master = stage === 4 ? Math.floor((xp - STAGES[4].xp) / MASTER_XP) : 0;
   // Hybrid (Tiger), wenn die stärkste Eigenschaft weniger als 25 % vor der zweiten liegt
   const ranked = Object.entries(stats).sort((a, b) => b[1] - a[1]);
-  const lean = ranked[0][1] > 0 ? (ranked[0][1] < ranked[1][1] * 1.25 ? 'hyb' : ranked[0][0]) : null;
+  const leanCalc = ranked[0][1] > 0 ? (ranked[0][1] < ranked[1][1] * 1.25 ? 'hyb' : ranked[0][0]) : null;
+  const lean = (s.pick && LINES[s.pick]) ? s.pick : leanCalc;
   const line = stage >= 3 ? (s.line || lean || 'aus') : null;
   const last = ws.length ? Math.max(...ws.map(w => w.day)) : null;
   const gap = last === null ? null : s.day - last;
@@ -797,8 +834,13 @@ function derive(s) {
   const today = hp(s, s.day);
   if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
   const shine = (today.water || 0) >= WATER_GOAL;
+  const w0 = curWeek * 7, wr = ws.filter(w => w.day >= w0 && w.day < w0 + 7);
+  let wSteps = 0, wSleep = 0;
+  for (let d = w0; d < w0 + 7 && d <= s.day; d++) { wSteps += hp(s, d).steps || 0; if (hp(s, d).sleep === 'gut') wSleep++; }
+  const wVals = { n: wr.length, min: wr.reduce((a, w) => a + w.min, 0), steps: Math.round(wSteps / 7), sleep: wSleep };
+  const goals = WEEK_GOALS.map(g => Object.assign({}, g, { val: wVals[g.id], done: wVals[g.id] >= g.goal }));
   const norm = {}; for (const k in stats) norm[k] = Math.min(1, stats[k] / 700);
-  return { xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, master, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
+  return { goals, xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, master, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
 }
 
 /* ---------- Pixel-Zeichnung ---------- */
@@ -1569,11 +1611,12 @@ function addWorkout(type, min, int, day) {
 }
 function commit() {
   D = derive(state);
-  if (D.stage >= 3 && !state.line) { state.line = D.line; D = derive(state); }
+  let askLine = false;
+  if (D.stage >= 3 && !state.line) { state.line = D.line; askLine = !state.pick; D = derive(state); }
   if (D.stage > state.seenStage) {
     for (let s = state.seenStage + 1; s <= D.stage; s++) if (state.stageDays[s] == null) state.stageDays[s] = state.day;
     state.seenStage = D.stage;
-    showEvo();
+    showEvo(askLine);
   }
   // Neue Meisterstufe feiern (nach einer Entwicklung erst, wenn deren Fenster zu ist)
   if (D.master > (state.seenMaster || 0)) {
@@ -1587,6 +1630,10 @@ function commit() {
     const it = rollItem(state.day, null, .5); if (it) toast(`Fundstück: ${ITEMS[it]}!`);
     confetti(50);
   }
+  // Wochenziele: einmal pro Woche und Ziel feiern
+  const gd = state.goalsDone[D.curWeek] || (state.goalsDone[D.curWeek] = []);
+  D.goals.forEach(g => { if (g.done && !gd.includes(g.id)) { gd.push(g.id); toast(`Wochenziel geschafft: ${g.label}`); } });
+  if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); }
   // Persönliche Rekorde feiern (nicht beim allerersten Wert)
   if (state.recs) {
     const nr = Object.keys(REC_LABELS).filter(k => D.recs[k] > (state.recs[k] || 0) && (state.recs[k] || 0) > 0);
@@ -1756,6 +1803,14 @@ function render() {
   });
 
 
+  // Wochenziele
+  const gdone = D.goals.filter(g => g.done).length;
+  $('goalsEyebrow').textContent = `Woche ${D.curWeek + 1}`;
+  $('goalsState').textContent = `${gdone} / ${D.goals.length}`;
+  $('goalsState').classList.toggle('done', gdone === D.goals.length);
+  $('goals').innerHTML = D.goals.map(g => `<div class="goal${g.done ? ' done' : ''}"><div class="xp-row"><span>${g.label}</span><span class="gv">${g.fmt(g.val)} / ${g.fmt(g.goal)}</span></div><div class="bar"><i style="width:${Math.min(1, g.val / g.goal) * 100}%"></i></div></div>`).join('');
+  $('linesNote').textContent = (state.pick || state.lineChosen) ? 'Du hast dieses Tier selbst gewählt. Ab der Teen-Stufe bleibt die Linie fest.' : 'Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.';
+
   // Tagesquest
   $('questText').textContent = D.quest.text;
   $('questState').textContent = D.questDone ? 'geschafft' : 'offen';
@@ -1828,18 +1883,32 @@ function updatePreview() {
 
 /* ---------- Entwicklung ---------- */
 let evoOpen = false;
-function showEvo() {
+function showEvo(askLine) {
   const s = D.stage, n = state.name;
   $('evoEyebrow').textContent = `${dayLabel(state.day)} · Stufe ${s} von 4`;
   const l = D.line ? LINES[D.line] : null;
-  $('evoTitle').textContent = s === 1 ? `${n} ist geschlüpft!` : s === 2 ? `${n} ist jetzt ein Kind` : `${n} ist jetzt ${s === 3 ? l.teenArt : l.adultArt}`;
-  $('evoText').textContent = EVO_TEXT[s](n, l);
+  const ask = !!(askLine && l);
+  if (ask) {
+    // Tier wurde gerade aus dem Training zugewiesen: Vorschlag annehmen oder ein anderes wählen
+    $('evoTitle').textContent = `Folgendes Tier würde zu dir passen: ${l.animal}`;
+    $('evoText').textContent = `${lineReason(l)}, deshalb würde ${n} ${s === 3 ? l.teenArt : l.adultArt} werden. Danach bleibt die Linie fest.`;
+    pickButtons($('evoPickSeg'), null, v => {
+      state.line = v; state.lineChosen = true; D = derive(state); save();
+      showEvo(false); render();
+    }, D.line);
+  } else {
+    $('evoTitle').textContent = s === 1 ? `${n} ist geschlüpft!` : s === 2 ? `${n} ist jetzt ein Kind` : `${n} ist jetzt ${s === 3 ? l.teenArt : l.adultArt}`;
+    $('evoText').textContent = EVO_TEXT[s](n, l);
+  }
+  $('evoClose').textContent = ask ? 'Akzeptieren' : 'Weiter';
+  $('evoChoose').hidden = !ask;
   $('evo').hidden = false; evoOpen = true;
   setTimeout(() => $('evoClose').focus(), 50);
 }
 let pendingMaster = null;
 function showMaster(m) {
   const n = state.name;
+  $('evoChoose').hidden = true; $('evoClose').textContent = 'Weiter';
   $('evoEyebrow').textContent = `${dayLabel(state.day)} · Meisterstufe ${m}`;
   $('evoTitle').textContent = `${n} ist jetzt Meister ${m}!`;
   $('evoText').textContent = masterText(m, n) + ` Nächste Meisterstufe in ${MASTER_XP} XP.`;
@@ -1930,8 +1999,14 @@ $('testForm').addEventListener('submit', e => {
 // Neues Ei nach 12 Wochen: einmal nachfragen, bei „Nein“ später in den Einstellungen nachholbar
 const canEgg = () => D && D.stage === 4 && D.curWeek + 1 >= 12;
 let eggAskOpen = false, pendingEgg = false;
+let eggPick = 'auto';
+function pickButtons(el, cur, onPick, skip) {
+  el.innerHTML = PICKS.filter(([k]) => skip === undefined || (k !== 'auto' && k !== skip)).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${k === cur}">${l}</button>`).join('');
+  el.onclick = e => { const b = e.target.closest('button[data-v]'); if (b) onPick(b.dataset.v); };
+}
 function hatchNewEgg() {
   const old = state, s = freshState();
+  s.pick = eggPick === 'auto' ? null : eggPick;
   s.archive = [...old.archive, { name: old.name, line: D.line, days: old.day + 1, xp: D.xp }];
   Object.assign(s, { style: old.style, theme: old.theme, tab: 'heute', name: 'Moro' });
   s.tests = old.tests.map(t => Object.assign({}, t, { day: t.day - (old.day + 1) }));
@@ -1943,6 +2018,9 @@ function showEggAsk() {
   $('eggAskTitle').textContent = 'Neues Ei ausbrüten?';
   $('eggAskText').textContent = `${n} ist ${l ? l.adultArt : 'erwachsen'} und ihr seid seit über 12 Wochen zusammen. Mit einem neuen Ei zieht ${n} ins Album unter „Frühere Begleiter“, und ein neues Abenteuer beginnt. Deine Messwerte bleiben erhalten.`;
   $('eggNo').textContent = `Nein, mit ${n} weitermachen`;
+  eggPick = 'auto';
+  const draw = () => pickButtons($('eggPickSeg'), eggPick, v => { eggPick = v; draw(); });
+  draw();
   drawInto($('eggCanvas'), { stage: 0, face: 'happy', norm: null, items: [], count: 2 }, 1);
   $('eggAsk').hidden = false; eggAskOpen = true;
   setTimeout(() => $('eggNo').focus(), 50);
@@ -1957,14 +2035,7 @@ $('eggNo').addEventListener('click', () => {
   $('eggAsk').hidden = true; eggAskOpen = false;
   toast('Alles klar. Du kannst das neue Ei jederzeit in den Einstellungen ausbrüten.');
 });
-let eggArmed = null;
-$('eggSetBtn').addEventListener('click', e => {
-  if (!canEgg()) return;
-  const b = e.currentTarget;
-  if (!eggArmed) { b.textContent = 'Wirklich? Nochmal tippen'; eggArmed = setTimeout(() => { b.textContent = 'Neues Ei ausbrüten'; eggArmed = null; }, 4000); return; }
-  clearTimeout(eggArmed); eggArmed = null; b.textContent = 'Neues Ei ausbrüten';
-  hatchNewEgg();
-});
+$('eggSetBtn').addEventListener('click', () => { if (canEgg() && !eggAskOpen) showEggAsk(); });
 
 $('nextDay').addEventListener('click', () => {
   state.day++; commit();
@@ -2035,6 +2106,13 @@ function renderSettings() {
     ? `${state.name} ist erwachsen und seit über 12 Wochen dabei. Mit einem neuen Ei zieht ${state.name} ins Album unter „Frühere Begleiter“.`
     : `Möglich, sobald ${state.name} erwachsen ist und ihr mindestens 12 Wochen zusammen trainiert habt.`;
   $('eggSetBtn').disabled = !egg;
+  // Tierwahl fürs aktuelle Ei: frei, sobald das erste Ei abgeschlossen ist (bis zur Teen-Stufe)
+  const pickable = state.archive.length >= 1 && D.stage < 3;
+  $('setPickBox').hidden = !pickable;
+  if (pickable) {
+    pickButtons($('setPickSeg'), state.pick || 'auto', v => { state.pick = v === 'auto' ? null : v; commit(); });
+    $('setPickText').textContent = state.pick ? `${LINES[state.pick].animal} schlüpft in jedem Fall, egal wie du trainierst.` : 'Das Tier ergibt sich aus deinem Training.';
+  }
 }
 $('setNameSave').addEventListener('click', () => { state.name = $('setName').value.trim() || 'Moro'; commit(); toast(`Dein Begleiter heißt jetzt ${state.name}.`); });
 $('setName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('setNameSave').click(); } });
