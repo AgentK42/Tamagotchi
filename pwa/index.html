@@ -223,6 +223,15 @@ button.item.off i { background: var(--heat0); }
 .stage::after { /* Laufbahn */
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
   background: repeating-linear-gradient(180deg, var(--track) 0 18px, var(--lane) 18px 20px); z-index: 0; }
+/* Meisterstufen: Bühnen-Ausbau (Meister 2: Scheinwerfer, Meister 4: Stadion mit Tribüne und Wimpelkette) */
+.stage.m2 { background: radial-gradient(ellipse 45% 70% at 30% 0%, rgba(255,226,140,.20), transparent 70%), radial-gradient(ellipse 45% 70% at 70% 0%, rgba(255,226,140,.20), transparent 70%), var(--stage); }
+.stage.m4::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 3 Q60 12 120 3' fill='none' stroke='%23C9B37A' stroke-width='1.2'/%3E%3Cpath d='M6 4 l8 1.6 -4.5 10z' fill='%23E5484D'/%3E%3Cpath d='M26 6.6 l8 1 -4.4 10z' fill='%23F5C542'/%3E%3Cpath d='M46 7.8 l8 .4 -4.2 10z' fill='%237E98FF'/%3E%3Cpath d='M66 7.9 l8 -.2 -4 10z' fill='%232BB3A0'/%3E%3Cpath d='M86 6.9 l8 -.9 -3.6 10z' fill='%23E5484D'/%3E%3Cpath d='M106 4.6 l8 -1.5 -3.2 10z' fill='%23F5C542'/%3E%3C/svg%3E") top left / 50% auto repeat-x,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 9px, transparent 9px 13px) 0 62% / 100% 16% no-repeat,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 9px, transparent 9px 13px) 0 45% / 100% 14% no-repeat;
+}
 .stage canvas { position: relative; z-index: 1; width: min(76%, 320px); aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges; margin-top: 2%; }
 /* Sprechblase über der Bühne, Spitze zeigt nach unten zur Figur */
 .mood { display: flex; gap: 8px; align-items: flex-end; margin-bottom: -4px; }
@@ -624,10 +633,21 @@ const STAT_NAMES = { aus: 'Ausdauer', kra: 'Kraft', bew: 'Beweglichkeit' };
 // Drei Intensitäten; die Werte bleiben auf der alten 1–5-Skala, damit XP und gespeicherte Trainings stimmen
 const INT_OPTS = [[1, 'locker'], [3, 'fordernd'], [4, 'hart']];
 const intLabel = v => v <= 2 ? 'locker' : v === 3 ? 'fordernd' : 'hart';
+// Schwellen so gewählt, dass „Erwachsen“ bei 2 fordernden Trainings pro Woche (≈133 XP) in etwa Woche 13 erreicht ist
 const STAGES = [
-  { name: 'Ei', xp: 0 }, { name: 'Baby', xp: 0 }, { name: 'Kind', xp: 550 },
-  { name: 'Teen', xp: 1300 }, { name: 'Erwachsen', xp: 2400 },
+  { name: 'Ei', xp: 0 }, { name: 'Baby', xp: 0 }, { name: 'Kind', xp: 400 },
+  { name: 'Teen', xp: 950 }, { name: 'Erwachsen', xp: 1700 },
 ];
+// Meisterstufen nach „Erwachsen“: alle 500 XP eine neue, jede mit einem sichtbaren Extra
+const MASTER_XP = 500;
+const MASTER_TEXT = {
+  1: n => `Ein goldener Stern schwebt jetzt über ${n}.`,
+  2: () => 'Scheinwerfer an: Die Bühne leuchtet jetzt.',
+  3: n => `Ein zweiter Stern, und ${n} schimmert golden.`,
+  4: () => 'Die Bühne wird zum Stadion, mit Tribüne und Wimpelkette.',
+  5: n => `Drei Sterne und eine goldene Kontur. Mehr Glanz geht kaum, ${n} ist ganz oben angekommen.`,
+};
+const masterText = (m, n) => (MASTER_TEXT[m] || (() => `Meisterstufe ${m}. Du bleibst dran, und genau darum geht es.`))(n);
 const LINES = {
   aus: { stat: 'Ausdauer', animal: 'Hase', lineName: 'Hasen-Linie', teen: 'Häschen', adult: 'Sprinthase', teenArt: 'ein Häschen', adultArt: 'ein Sprinthase', sports: 'Laufen, Rad' },
   kra: { stat: 'Kraft', animal: 'Bär', lineName: 'Bären-Linie', teen: 'Bärchen', adult: 'Kraftbär', teenArt: 'ein Bärchen', adultArt: 'ein Kraftbär', sports: 'Krafttraining' },
@@ -697,7 +717,7 @@ const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
 function freshState() {
   return { v: 1, name: 'Moro', day: 0, workouts: [], items: [], paused: false, sample: false, seenStage: 0, stageDays: {}, line: null,
-    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null };
+    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null, seenMaster: 0 };
 }
 function sampleState() {
   const plan = [[0,'laufen',25,2],[2,'yoga',30,2],[4,'laufen',30,3],[7,'kraft',40,3],[9,'laufen',35,3],[11,'rad',50,2],[14,'laufen',40,3],[15,'kraft',45,3],[17,'laufen',45,4]];
@@ -765,7 +785,8 @@ function derive(s) {
     dayBest: Math.max(0, ...Object.values(dayXp)),
   };
   const count = ws.length;
-  const stage = count < 3 ? 0 : xp < 550 ? 1 : xp < 1300 ? 2 : xp < 2400 ? 3 : 4;
+  const stage = count < 3 ? 0 : xp < STAGES[2].xp ? 1 : xp < STAGES[3].xp ? 2 : xp < STAGES[4].xp ? 3 : 4;
+  const master = stage === 4 ? Math.floor((xp - STAGES[4].xp) / MASTER_XP) : 0;
   // Hybrid (Tiger), wenn die stärkste Eigenschaft weniger als 25 % vor der zweiten liegt
   const ranked = Object.entries(stats).sort((a, b) => b[1] - a[1]);
   const lean = ranked[0][1] > 0 ? (ranked[0][1] < ranked[1][1] * 1.25 ? 'hyb' : ranked[0][0]) : null;
@@ -785,7 +806,7 @@ function derive(s) {
   if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
   const shine = (today.water || 0) >= WATER_GOAL;
   const norm = {}; for (const k in stats) norm[k] = Math.min(1, stats[k] / 700);
-  return { xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
+  return { xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, master, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
 }
 
 /* ---------- Pixel-Zeichnung ---------- */
@@ -843,6 +864,7 @@ function drawPet(ctx, L, f) {
   const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
   let c = PAL[kind];
   if (L.face === 'sad') c = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, mix(v, '#9AA0AE', .4)]));
+  if (st === 4 && (L.master || 0) >= 5) c = Object.assign({}, c, { out: '#9A6A06' }); // Meister 5: goldene Kontur
   const size = { 1: [5, 4], 2: [6, 6], 3: [7, 7], 4: [8, 8] }[st];
   const rx = size[0] + (kind === 'kra' ? (st === 4 ? 2 : 1) : kind === 'hyb' && st === 4 ? 1 : 0), ry = size[1];
   const box = (x, y, w, h) => { const a = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) a.push([x + i, y + j]); return a; };
@@ -1001,6 +1023,14 @@ function drawPet(ctx, L, f) {
   if (items.has('kranz')) [-4, -2, 0, 2, 4].forEach((x, i) => P(cx + x, topAt(x) + 1, ['#FF9DB0', '#FFFFFF', '#FFD25E', '#FFFFFF', '#FF9DB0'][i]));
   if (items.has('blatt')) { const x = cx + Math.round(rx * .45), y = cy - ry + 1; R(x, y, 2, 2, '#D9472B'); P(x + 2, y - 1, '#D9472B'); P(x + 1, y - 1, '#D9472B'); P(x - 1, y + 2, '#5A1608'); }
   if (L.shine) { P(cx - rx - 2, cy - ry + 3, '#7FC4FF'); P(cx + rx + 2, cy - ry + 6, '#7FC4FF'); P(cx - rx - 2, cy - ry + 2, '#CFE8FF'); }
+  // Meisterstufen (Retro): Sterne oben, ab Meister 3 goldener Schimmer
+  const Mr = st === 4 ? (L.master || 0) : 0;
+  if (Mr >= 1) {
+    const star = (x, y) => { P(x, y - 2, GOLD); R(x - 2, y - 1, 5, 1, GOLD); R(x - 1, y, 3, 1, GOLD); P(x, y, '#FFE08A'); P(x - 1, y + 1, GOLD); P(x + 1, y + 1, GOLD); };
+    const cnt = Mr >= 5 ? 3 : Mr >= 3 ? 2 : 1;
+    (cnt === 1 ? [[20, 4]] : cnt === 2 ? [[13, 5], [27, 5]] : [[11, 6], [20, 4], [29, 6]]).forEach(([x, y]) => star(x, y));
+  }
+  if (Mr >= 3 && f % 6 < 3) { P(cx - rx - 3, cy - 2, '#FFD86B'); P(cx + rx + 3, cy + 2, '#FFD86B'); P(cx + rx - 1, cy - ry - 3, '#FFD86B'); }
 
   // Gesicht
   const ex = Math.max(2, Math.round(rx * .42));
@@ -1142,6 +1172,7 @@ function drawPetHi(ctx, L, f) {
   const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
   let c = HPAL[kind];
   if (face === 'sad') c = Object.fromEntries(Object.entries(c).map(([a, v]) => [a, mix(v, '#9AA0AE', .4)]));
+  if (L.stage === 4 && (L.master || 0) >= 5) c = Object.assign({}, c, { out: mix(c.out, '#C99A1E', .6), deep: mix(c.deep, '#C99A1E', .25) }); // Meister 5: goldene Kontur
   const size = { 1: [22, 18], 2: [26, 23], 3: [29, 26], 4: [32, 29] }[st];
   const rx = size[0] + (kind === 'kra' && st === 3 ? 1 : 0), ry = size[1];
   const footRy = baby ? 4 : 6, footY = baby ? 104.5 : 103;
@@ -1458,6 +1489,27 @@ function drawPetHi(ctx, L, f) {
     spot(cx - 2, my - 2.4, 1.2, .8, '#FFF1B8');
     if (pawKind && !up) bunnyPaws(7.4, my); // Hase, Katze und Tiger halten die Medaille mit beiden Pfoten
   }
+  // Meisterstufen: goldene Sterne über dem Kopf, ab Meister 3 goldener Schimmer
+  const M = st === 4 ? (L.master || 0) : 0;
+  if (M >= 1) {
+    const GOLDP = { fill: '#F5C542', mid: '#EDB935', shade: '#DFA622', deep: '#C08A12', out: '#7A5406', hi: '#FFE38A', hi2: '#FFF1BF' };
+    const starAt = (x, y, r) => {
+      const m = mk(), pts = [];
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+      for (let i = 0; i < 10; i++) tri(m, [x, y], pts[i], pts[(i + 1) % 10]);
+      paint(m, GOLDP);
+    };
+    const bob = f % 8 < 4 ? 0 : -1, count = M >= 5 ? 3 : M >= 3 ? 2 : 1;
+    const pos = count === 1 ? [[cx, 12]] : count === 2 ? [[cx - 22, 15], [cx + 22, 15]] : [[cx - 26, 17], [cx, 10], [cx + 26, 17]];
+    pos.forEach(([x, y], i) => starAt(x, y + (i % 2 ? -bob : bob), 7));
+  }
+  if (M >= 3) {
+    [[-rx - 5, -ry * .3], [rx + 5, ry * .1], [-rx * .6, -ry - 4], [rx * .7, -ry - 2], [-rx - 3, ry * .5], [rx + 3, -ry * .6]].forEach(([dx, dy], i) => {
+      if ((f + i * 3) % 12 >= 6) return;
+      const x = cx + dx, y = cy + dy, a = (f + i) % 2 ? 2.4 : 1.6;
+      line([[x - a, y], [x + a, y]], .45, '#FFD86B'); line([[x, y - a], [x, y + a]], .45, '#FFD86B'); spot(x, y, .7, .7, '#FFF4C8');
+    });
+  }
   ctx.restore();
 
   if (face === 'sleep') {
@@ -1497,7 +1549,7 @@ document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener
 }));
 
 function look(stage, overrides = {}) {
-  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine }, overrides);
+  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0 }, overrides);
 }
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
@@ -1530,6 +1582,11 @@ function commit() {
     for (let s = state.seenStage + 1; s <= D.stage; s++) if (state.stageDays[s] == null) state.stageDays[s] = state.day;
     state.seenStage = D.stage;
     showEvo();
+  }
+  // Neue Meisterstufe feiern (nach einer Entwicklung erst, wenn deren Fenster zu ist)
+  if (D.master > (state.seenMaster || 0)) {
+    state.seenMaster = D.master;
+    if (evoOpen) pendingMaster = D.master; else showMaster(D.master);
   }
   // Tagesquest automatisch abhaken
   if (!state.paused && !state.questsDone[state.day] && D.quest.check(state, state.day)) {
@@ -1620,7 +1677,9 @@ function render() {
   $('sampleNote').hidden = !state.sample;
   if (document.activeElement !== $('petName')) $('petName').value = n;
   $('petName').style.width = ($('petName').value.length + 1) + 'ch';
-  $('stageChip').textContent = stageName(D.stage, D.line);
+  $('stageChip').textContent = stageName(D.stage, D.line) + (D.master ? ` · Meister ${D.master}` : '');
+  const stEl = document.querySelector('.pet .stage');
+  [1, 2, 3, 4, 5].forEach(i => stEl.classList.toggle('m' + i, D.master >= i));
   const showLine = D.stage >= 1 && D.lean;
   $('formChip').hidden = !showLine;
   if (showLine) $('formChip').textContent = D.stage >= 3 ? LINES[D.line].lineName : `Tendenz: ${LINES[D.lean].animal}`;
@@ -1632,7 +1691,10 @@ function render() {
   let label, val, pct;
   if (D.stage === 0) { const left = 3 - D.count; label = `Noch ${left} ${left === 1 ? 'Training' : 'Trainings'} bis zum Schlüpfen`; val = `${D.count} / 3`; pct = D.count / 3; }
   else if (D.stage < 4) { const cur = STAGES[D.stage].xp, nx = STAGES[D.stage + 1]; label = `Nächste Stufe: ${stageName(D.stage + 1, D.line || D.lean)}`; val = `${D.xp} / ${nx.xp} XP`; pct = (D.xp - cur) / (nx.xp - cur); }
-  else { label = `Ausgewachsen als ${LINES[D.line].adult}`; val = `${D.xp} XP`; pct = 1; }
+  else {
+    const cur = STAGES[4].xp + D.master * MASTER_XP, nx = cur + MASTER_XP;
+    label = `Nächste Meisterstufe: Meister ${D.master + 1}`; val = `${D.xp} / ${nx} XP`; pct = (D.xp - cur) / MASTER_XP;
+  }
   $('xpLabel').textContent = label; $('xpValue').textContent = val; $('xpBar').style.width = Math.max(0, Math.min(1, pct)) * 100 + '%';
   [['aus', 'sAus', 'bAus'], ['kra', 'sKra', 'bKra'], ['bew', 'sBew', 'bBew']].forEach(([k, s, b]) => {
     $(s).textContent = 'Lv ' + (1 + Math.floor(D.stats[k] / 80));
@@ -1786,8 +1848,18 @@ function showEvo() {
   $('evo').hidden = false; evoOpen = true;
   setTimeout(() => $('evoClose').focus(), 50);
 }
+let pendingMaster = null;
+function showMaster(m) {
+  const n = state.name;
+  $('evoEyebrow').textContent = `${dayLabel(state.day)} · Meisterstufe ${m}`;
+  $('evoTitle').textContent = `${n} ist jetzt Meister ${m}!`;
+  $('evoText').textContent = masterText(m, n) + ` Nächste Meisterstufe in ${MASTER_XP} XP.`;
+  $('evo').hidden = false; evoOpen = true; confetti(120);
+  setTimeout(() => $('evoClose').focus(), 50);
+}
 $('evoClose').addEventListener('click', () => {
   $('evo').hidden = true; evoOpen = false;
+  if (pendingMaster != null) { const m = pendingMaster; pendingMaster = null; showMaster(m); return; }
   if (pendingLetter != null) { const w = pendingLetter; pendingLetter = null; showLetter(w); }
 });
 $('letterClose').addEventListener('click', () => { $('letter').hidden = true; letterOpen = false; });

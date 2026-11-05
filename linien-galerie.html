@@ -73,6 +73,7 @@ function drawPet(ctx, L, f) {
   const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
   let c = PAL[kind];
   if (L.face === 'sad') c = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, mix(v, '#9AA0AE', .4)]));
+  if (st === 4 && (L.master || 0) >= 5) c = Object.assign({}, c, { out: '#9A6A06' }); // Meister 5: goldene Kontur
   const size = { 1: [5, 4], 2: [6, 6], 3: [7, 7], 4: [8, 8] }[st];
   const rx = size[0] + (kind === 'kra' ? (st === 4 ? 2 : 1) : kind === 'hyb' && st === 4 ? 1 : 0), ry = size[1];
   const box = (x, y, w, h) => { const a = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) a.push([x + i, y + j]); return a; };
@@ -231,6 +232,14 @@ function drawPet(ctx, L, f) {
   if (items.has('kranz')) [-4, -2, 0, 2, 4].forEach((x, i) => P(cx + x, topAt(x) + 1, ['#FF9DB0', '#FFFFFF', '#FFD25E', '#FFFFFF', '#FF9DB0'][i]));
   if (items.has('blatt')) { const x = cx + Math.round(rx * .45), y = cy - ry + 1; R(x, y, 2, 2, '#D9472B'); P(x + 2, y - 1, '#D9472B'); P(x + 1, y - 1, '#D9472B'); P(x - 1, y + 2, '#5A1608'); }
   if (L.shine) { P(cx - rx - 2, cy - ry + 3, '#7FC4FF'); P(cx + rx + 2, cy - ry + 6, '#7FC4FF'); P(cx - rx - 2, cy - ry + 2, '#CFE8FF'); }
+  // Meisterstufen (Retro): Sterne oben, ab Meister 3 goldener Schimmer
+  const Mr = st === 4 ? (L.master || 0) : 0;
+  if (Mr >= 1) {
+    const star = (x, y) => { P(x, y - 2, GOLD); R(x - 2, y - 1, 5, 1, GOLD); R(x - 1, y, 3, 1, GOLD); P(x, y, '#FFE08A'); P(x - 1, y + 1, GOLD); P(x + 1, y + 1, GOLD); };
+    const cnt = Mr >= 5 ? 3 : Mr >= 3 ? 2 : 1;
+    (cnt === 1 ? [[20, 4]] : cnt === 2 ? [[13, 5], [27, 5]] : [[11, 6], [20, 4], [29, 6]]).forEach(([x, y]) => star(x, y));
+  }
+  if (Mr >= 3 && f % 6 < 3) { P(cx - rx - 3, cy - 2, '#FFD86B'); P(cx + rx + 3, cy + 2, '#FFD86B'); P(cx + rx - 1, cy - ry - 3, '#FFD86B'); }
 
   // Gesicht
   const ex = Math.max(2, Math.round(rx * .42));
@@ -372,6 +381,7 @@ function drawPetHi(ctx, L, f) {
   const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
   let c = HPAL[kind];
   if (face === 'sad') c = Object.fromEntries(Object.entries(c).map(([a, v]) => [a, mix(v, '#9AA0AE', .4)]));
+  if (L.stage === 4 && (L.master || 0) >= 5) c = Object.assign({}, c, { out: mix(c.out, '#C99A1E', .6), deep: mix(c.deep, '#C99A1E', .25) }); // Meister 5: goldene Kontur
   const size = { 1: [22, 18], 2: [26, 23], 3: [29, 26], 4: [32, 29] }[st];
   const rx = size[0] + (kind === 'kra' && st === 3 ? 1 : 0), ry = size[1];
   const footRy = baby ? 4 : 6, footY = baby ? 104.5 : 103;
@@ -687,6 +697,27 @@ function drawPetHi(ctx, L, f) {
     line([[cx, my - 1.8], [cx, my + 1.8]], .45, '#FFE08A'); line([[cx - 1.8, my], [cx + 1.8, my]], .45, '#FFE08A');
     spot(cx - 2, my - 2.4, 1.2, .8, '#FFF1B8');
     if (pawKind && !up) bunnyPaws(7.4, my); // Hase, Katze und Tiger halten die Medaille mit beiden Pfoten
+  }
+  // Meisterstufen: goldene Sterne über dem Kopf, ab Meister 3 goldener Schimmer
+  const M = st === 4 ? (L.master || 0) : 0;
+  if (M >= 1) {
+    const GOLDP = { fill: '#F5C542', mid: '#EDB935', shade: '#DFA622', deep: '#C08A12', out: '#7A5406', hi: '#FFE38A', hi2: '#FFF1BF' };
+    const starAt = (x, y, r) => {
+      const m = mk(), pts = [];
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+      for (let i = 0; i < 10; i++) tri(m, [x, y], pts[i], pts[(i + 1) % 10]);
+      paint(m, GOLDP);
+    };
+    const bob = f % 8 < 4 ? 0 : -1, count = M >= 5 ? 3 : M >= 3 ? 2 : 1;
+    const pos = count === 1 ? [[cx, 12]] : count === 2 ? [[cx - 22, 15], [cx + 22, 15]] : [[cx - 26, 17], [cx, 10], [cx + 26, 17]];
+    pos.forEach(([x, y], i) => starAt(x, y + (i % 2 ? -bob : bob), 7));
+  }
+  if (M >= 3) {
+    [[-rx - 5, -ry * .3], [rx + 5, ry * .1], [-rx * .6, -ry - 4], [rx * .7, -ry - 2], [-rx - 3, ry * .5], [rx + 3, -ry * .6]].forEach(([dx, dy], i) => {
+      if ((f + i * 3) % 12 >= 6) return;
+      const x = cx + dx, y = cy + dy, a = (f + i) % 2 ? 2.4 : 1.6;
+      line([[x - a, y], [x + a, y]], .45, '#FFD86B'); line([[x, y - a], [x, y + a]], .45, '#FFD86B'); spot(x, y, .7, .7, '#FFF4C8');
+    });
   }
   ctx.restore();
 
