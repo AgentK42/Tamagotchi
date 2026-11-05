@@ -1861,9 +1861,18 @@ function letterFor(wi) {
   const days = D.weekDays[wi] || 0; xpW += days >= 3 ? 60 : days === 2 ? 25 : 0;
   for (let d = d0; d <= d1; d++) if (s.questsDone[d]) xpW += QUEST_XP;
   const water = []; for (let d = d0; d <= d1; d++) if (hp(s, d).water) water.push(hp(s, d).water);
-  const fact = FACTS.filter(x => x.from <= wi + 1).pop();
+  // Körperfakt nach Wochen mit Training gezählt: Eine Woche ohne Training verschiebt den Fakt auf die nächste Woche
+  const trainedWeeks = (D.weekCounts || []).slice(0, wi + 1).filter(c => c > 0).length;
+  const fact = FACTS.filter(x => x.from <= Math.max(1, trainedWeeks)).pop();
   const p = [];
-  p.push(ws.length ? `Du hast diese Woche ${ws.length}-mal trainiert, zusammen ${fmtMin(mins)}. Am meisten ${TYPES[fav[0]].label}.` : 'Diese Woche war ruhig. Das ist in Ordnung, ich warte auf dich.');
+  const MISS = { aus: 'Ich werde ganz hibbelig, wenn ich an die nächste Runde denke.', kra: 'Ich brumme schon vor Vorfreude vor mich hin.', bew: 'Ich strecke mich schon mal und mache mich geschmeidig.', hyb: 'Ich tigere schon vergnügt herum.' };
+  if (!ws.length) {
+    p.push('Diese Woche war ruhig. Das ist in Ordnung, Pausen gehören dazu.');
+    p.push(`${MISS[D.line] || 'Ich vermisse unsere Einheiten ein bisschen.'} Ich freue mich schon darauf, wieder mit dir zu trainieren.`);
+    if (water.length) p.push(`Im Schnitt hast du ${(water.reduce((a, b) => a + b, 0) / water.length).toFixed(1).replace('.', ',')} Gläser Wasser am Tag getrunken.`);
+    return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', 0], ['Zeit', fmtMin(0)], ['XP', xpW]] };
+  }
+  p.push(`Du hast diese Woche ${ws.length}-mal trainiert, zusammen ${fmtMin(mins)}. Am meisten ${TYPES[fav[0]].label}.`);
   if (wi > 0 && ws.length) p.push(ws.length > prev.length ? `Das ${ws.length - prev.length === 1 ? 'ist eine Einheit' : `sind ${ws.length - prev.length} Einheiten`} mehr als letzte Woche.` : ws.length === prev.length ? 'Genauso oft wie letzte Woche. Schön beständig.' : 'Etwas weniger als letzte Woche, aber jede Einheit zählt.');
   if (water.length) p.push(`Im Schnitt hast du ${(water.reduce((a, b) => a + b, 0) / water.length).toFixed(1).replace('.', ',')} Gläser Wasser am Tag getrunken.`);
   p.push(`In deinem Körper passiert gerade: ${fact.title}. ${fact.text.split('. ')[0]}.`);
