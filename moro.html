@@ -93,6 +93,8 @@ button, input { font: inherit; color: inherit; }
 .s-backup input[type="file"] { max-width: 100%; font-size: 14px; color: var(--muted); }
 .s-backup textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; font-family: var(--f-mono); font-size: 12px; margin-block: 8px; }
 .s-backup details summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.persist { display: grid; gap: 6px; background: var(--bg); border-radius: 12px; padding: 12px; font-size: 14px; }
+.persist .ok { color: var(--good); font-weight: 700; } .persist .no { color: var(--warn); font-weight: 700; }
 .confirm { background: var(--accent-soft); border-radius: 12px; padding: 12px; display: grid; gap: 10px; font-size: 14px; }
 .danger-zone { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
 .btn.danger-btn { border-color: var(--bad); color: var(--bad); }
@@ -529,6 +531,11 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 
     <section class="card s-backup" aria-label="Backup">
       <div><p class="eyebrow">Deine Daten</p><h2>Backup</h2></div>
+      <div class="persist">
+        <p><b>Speicherschutz:</b> <span id="persistState">wird geprüft …</span></p>
+        <p class="fine" id="persistHint"></p>
+        <div><button class="btn" id="persistBtn" type="button" hidden>Speicher schützen</button></div>
+      </div>
       <p class="fine" id="backupInfo"></p>
       <div class="btn-row">
         <button class="btn" id="bkDownload" type="button">Backup herunterladen</button>
@@ -1785,6 +1792,7 @@ $('logForm').addEventListener('submit', e => {
   toast(`${TYPES[v.type].label} eingetragen · +${gained} XP${xpOf(v) > room ? ' (Tageslimit)' : ''}`);
   if (r.item) toast(`Fundstück: ${ITEMS[r.item]}!`);
   commit();
+  if (persistStatus === 'off') requestPersist(false); // beim Eintragen still um Speicherschutz bitten
 });
 $('petName').addEventListener('input', e => { state.name = e.target.value.trim() || 'Moro'; save(); render(); });
 $('pause').addEventListener('change', e => { state.paused = e.target.checked; toast(state.paused ? `${state.name} macht Pause. Nichts geht verloren.` : `${state.name} ist wieder wach.`); commit(); });
@@ -1918,6 +1926,37 @@ $('itemToggles').addEventListener('change', e => {
   if (e.target.checked) delete state.hidden[k]; else state.hidden[k] = true;
   save(); render(); tick();
 });
+// Speicherschutz: Browser bitten, Moros Daten nicht automatisch zu löschen
+let persistStatus = 'unknown';
+async function checkPersist() {
+  try { persistStatus = navigator.storage && navigator.storage.persisted ? ((await navigator.storage.persisted()) ? 'on' : 'off') : 'unsupported'; }
+  catch (e) { persistStatus = 'unsupported'; }
+  renderPersist();
+}
+async function requestPersist(manual) {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) { persistStatus = 'unsupported'; renderPersist(); return; }
+    if (await navigator.storage.persisted()) { persistStatus = 'on'; renderPersist(); return; }
+    const ok = await navigator.storage.persist();
+    persistStatus = ok ? 'on' : 'denied';
+    if (manual || ok) toast(ok ? 'Speicher geschützt: Der Browser löscht Moros Daten nicht mehr automatisch.' : 'Der Browser hat den Speicherschutz noch nicht erlaubt.');
+  } catch (e) { persistStatus = 'unsupported'; }
+  renderPersist();
+}
+function renderPersist() {
+  const S = {
+    on: ['<span class="ok">aktiv</span>', 'Der Browser löscht Moros Daten nicht von sich aus, auch nicht bei knappem Speicherplatz.'],
+    off: ['<span class="no">nicht aktiv</span>', 'Bei knappem Speicher oder langer Pause könnte der Browser die Daten löschen. Tippe auf „Speicher schützen“.'],
+    denied: ['<span class="no">nicht erlaubt</span>', 'Der Browser hat abgelehnt. Am zuverlässigsten wird es, wenn du Moro als App auf dem Home-Bildschirm installierst und regelmäßig öffnest; danach erneut versuchen.'],
+    unsupported: ['<span class="no">nicht verfügbar</span>', 'Dieser Browser bietet keinen Speicherschutz an. Installiere Moro als App und mach regelmäßig ein Backup.'],
+    unknown: ['wird geprüft …', ''],
+  }[persistStatus];
+  $('persistState').innerHTML = S[0]; $('persistHint').textContent = S[1];
+  $('persistBtn').hidden = !(persistStatus === 'off' || persistStatus === 'denied');
+}
+$('persistBtn').addEventListener('click', () => requestPersist(true));
+checkPersist();
+
 // Backup
 const backupText = () => JSON.stringify({ app: 'moro', v: 1, exported: new Date().toISOString(), state });
 const markBackup = () => { state.lastBackup = new Date().toISOString(); save(); renderSettings(); };
