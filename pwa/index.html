@@ -713,7 +713,7 @@ const FACTS = [
   { from: 12, title: 'Sichtbar', text: 'Ab etwa 12 Wochen sehen viele die Veränderung im Spiegel. Ab hier trägt dich der Sport immer mehr selbst. Moro hat seinen Job gemacht.' },
 ];
 const EVO_TEXT = {
-  1: n => `Drei Trainings geschafft. Genau hier hören die meisten wieder auf. ${n} ist geschlüpft, weil du weitergemacht hast.`,
+  1: n => `Zwei Trainings geschafft. Genau hier hören die meisten wieder auf. ${n} ist geschlüpft, weil du weitergemacht hast.`,
   2: n => `${n} wächst, und deine Muskeln bauen gerade neue Mitochondrien. Achte auf die kleinen Ohren: Sie verraten, welches Tier aus ${n} wird.`,
   3: (n, l) => `${lineReason(l)}, deshalb wird ${n} ${l.teenArt}. Wer anders trainiert, bekommt ein anderes Tier.`,
   4: (n, l) => `Ausgewachsen als ${l.adult}. Was ${n} in diesen Wochen geworden ist, siehst du bald auch an dir selbst.`,
@@ -798,7 +798,7 @@ function derive(s) {
     dayBest: Math.max(0, ...Object.values(dayXp)),
   };
   const count = ws.length;
-  const stage = count < 3 ? 0 : xp < STAGES[2].xp ? 1 : xp < STAGES[3].xp ? 2 : xp < STAGES[4].xp ? 3 : 4;
+  const stage = count < 2 ? 0 : xp < STAGES[2].xp ? 1 : xp < STAGES[3].xp ? 2 : xp < STAGES[4].xp ? 3 : 4;
   const master = stage === 4 ? Math.floor((xp - STAGES[4].xp) / MASTER_XP) : 0;
   // Hybrid (Tiger), wenn die stärkste Eigenschaft weniger als 25 % vor der zweiten liegt
   const ranked = Object.entries(stats).sort((a, b) => b[1] - a[1]);
@@ -1703,7 +1703,7 @@ function render() {
   $('pause').checked = state.paused;
 
   let label, val, pct;
-  if (D.stage === 0) { const left = 3 - D.count; label = `Noch ${left} ${left === 1 ? 'Training' : 'Trainings'} bis zum Schlüpfen`; val = `${D.count} / 3`; pct = D.count / 3; }
+  if (D.stage === 0) { const left = 2 - D.count; label = `Noch ${left} ${left === 1 ? 'Training' : 'Trainings'} bis zum Schlüpfen`; val = `${D.count} / 2`; pct = D.count / 2; }
   else if (D.stage < 4) { const cur = STAGES[D.stage].xp, nx = STAGES[D.stage + 1]; label = `Nächste Stufe: ${stageName(D.stage + 1, D.line || D.lean)}`; val = `${D.xp} / ${nx.xp} XP`; pct = (D.xp - cur) / (nx.xp - cur); }
   else {
     const cur = STAGES[4].xp + D.master * MASTER_XP, nx = cur + MASTER_XP;
