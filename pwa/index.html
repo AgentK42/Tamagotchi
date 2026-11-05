@@ -312,6 +312,10 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .st.locked canvas { filter: brightness(0) opacity(.18); }
 .st b { font-size: 12px; } .st span { color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
 .items { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.swatches .lock { background: var(--heat0); cursor: default; display: grid; place-items: center; color: var(--muted); font-size: 13px; font-weight: 700; }
 .item { font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
 .item i { width: 8px; height: 8px; border-radius: 2px; background: var(--gold); }
 .item.miss { border-style: dashed; color: var(--muted); }
@@ -464,7 +468,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <span class="q-state" id="goalsState">0 / 4</span>
       </div>
       <div class="goals" id="goals"></div>
-      <p class="fine">Zählt von Tag 1 bis 7 der laufenden Woche. Schlaf zählt, wenn du „gut“ einträgst.</p>
+      <p class="fine">Zählt von Tag 1 bis 7 der laufenden Woche. Schlaf zählt, wenn du „gut“ einträgst. Ein erreichtes Trinkziel schaltet eine neue Flaschenfarbe frei.</p>
     </section>
 
     <section class="card letterc" aria-label="Wochenbrief">
@@ -539,6 +543,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <p class="fine" id="linesNote" style="margin-top:8px">Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.</p>
       </div>
       <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
+      <div id="bottleBox" hidden><p class="eyebrow" style="margin-bottom:8px">Flaschenfarben · <span id="bottleCount"></span> · eine neue pro Wochentrinkziel</p><div class="swatches" id="bottleColors" role="group" aria-label="Farbe der Trinkflasche"></div></div>
       <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
     </section>
 
@@ -703,7 +708,15 @@ const WEEK_GOALS = [
   { id: 'min', label: 'Trainingsminuten', goal: 150, fmt: v => `${v} min` },
   { id: 'steps', label: 'Schritte pro Tag (Ø der Woche)', goal: 6000, fmt: v => v.toLocaleString('de-DE') },
   { id: 'sleep', label: 'Tage mit gutem Schlaf', goal: 4, fmt: v => `${v}` },
+  { id: 'water', label: 'Tage mit Trinkziel', goal: 5, fmt: v => `${v}` },
 ];
+// Flaschenfarben: Blau gibt es von Anfang an, jedes erreichte Wochentrinkziel schaltet eine zufällige weitere frei
+const BOTTLES = {
+  blau: { name: 'Blau', c: '#2F5BFF' }, gruen: { name: 'Grün', c: '#2FA58E' }, rot: { name: 'Rot', c: '#E5484D' },
+  orange: { name: 'Orange', c: '#F28C28' }, gelb: { name: 'Gelb', c: '#F5B82E' }, lila: { name: 'Lila', c: '#8B5CF6' },
+  pink: { name: 'Pink', c: '#EC4899' }, tuerkis: { name: 'Türkis', c: '#22B8CF' }, schwarz: { name: 'Schwarz', c: '#3A4256' },
+};
+const bottleKey = s => (s.bottle && BOTTLES[s.bottle]) ? s.bottle : 'blau';
 const stageName = (s, line) => s >= 3 && line ? LINES[line][s === 3 ? 'teen' : 'adult'] : STAGES[s].name;
 const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Sneaker', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
 const BASE_ITEMS = Object.keys(ITEMS);
@@ -856,9 +869,9 @@ function derive(s) {
   if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
   const shine = (today.water || 0) >= WATER_GOAL;
   const w0 = curWeek * 7, wr = ws.filter(w => w.day >= w0 && w.day < w0 + 7);
-  let wSteps = 0, wSleep = 0;
-  for (let d = w0; d < w0 + 7 && d <= s.day; d++) { wSteps += hp(s, d).steps || 0; if (hp(s, d).sleep === 'gut') wSleep++; }
-  const wVals = { n: wr.length, min: wr.reduce((a, w) => a + w.min, 0), steps: Math.round(wSteps / 7), sleep: wSleep };
+  let wSteps = 0, wSleep = 0, wWater = 0;
+  for (let d = w0; d < w0 + 7 && d <= s.day; d++) { wSteps += hp(s, d).steps || 0; if (hp(s, d).sleep === 'gut') wSleep++; if ((hp(s, d).water || 0) >= WATER_GOAL) wWater++; }
+  const wVals = { n: wr.length, min: wr.reduce((a, w) => a + w.min, 0), steps: Math.round(wSteps / 7), sleep: wSleep, water: wWater };
   const goals = WEEK_GOALS.map(g => Object.assign({}, g, { val: wVals[g.id], done: wVals[g.id] >= g.goal }));
   const norm = {}; for (const k in stats) norm[k] = Math.min(1, stats[k] / 700);
   return { goals, xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, master, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
@@ -947,7 +960,8 @@ function drawPet(ctx, L, f) {
     }
     if (items.has('flasche')) {
       const x = towel ? tx + Math.floor(TW / 2) - 1 : 20 - rx - 7;
-      R(x, base - 5, 3, 5, '#2F5BFF'); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, '#9DB4FF');
+      const bc = BOTTLES[L.bottle || 'blau'].c;
+      R(x, base - 5, 3, 5, bc); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, mix(bc, '#FFFFFF', .55));
     }
   }
 
@@ -1254,8 +1268,9 @@ function drawPetHi(ctx, L, f) {
     if (items.has('flasche')) {
       const bx = towel ? tx + tw / 2 : 60 - rx - 10;
       const m = mk(); cap(m, bx, base - 4, bx, base - 14, 4, 4);
-      paint(m, { fill: '#2F5BFF', mid: '#2A52EA', shade: '#2448D2', deep: '#1C39A8', out: '#122670', hi: '#7D97FF', hi2: '#A9BBFF' });
-      spot(bx, base - 9, 3.2, 1.8, '#9DB4FF');
+      const bc = BOTTLES[L.bottle || 'blau'].c, K = '#000000', W = '#FFFFFF';
+      paint(m, { fill: bc, mid: mix(bc, K, .07), shade: mix(bc, K, .15), deep: mix(bc, K, .35), out: mix(bc, K, .6), hi: mix(bc, W, .38), hi2: mix(bc, W, .58) });
+      spot(bx, base - 9, 3.2, 1.8, mix(bc, W, .55));
       const cm = mk(); ell(cm, bx, base - 19.5, 2.6, 1.9); paint(cm, { fill: '#E8ECF5', mid: '#E0E5F0', shade: '#CFD6E4', deep: '#B9C2D4', out: '#5B6478', hi: '#FFFFFF', hi2: '#FFFFFF' });
     }
   }
@@ -1604,7 +1619,7 @@ document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener
 }));
 
 function look(stage, overrides = {}) {
-  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0 }, overrides);
+  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0, bottle: bottleKey(state) }, overrides);
 }
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
@@ -1630,6 +1645,17 @@ function addWorkout(type, min, int, day) {
   const item = (before.stage === 0 && after.stage >= 1) ? rollItem(day, 'stirnband') : rollItem(day);
   return { item, before, after };
 }
+// Belohnung fürs Wochentrinkziel: eine zufällige, noch fehlende Flaschenfarbe freischalten und gleich anlegen
+function unlockBottle() {
+  const have = state.bottles || ['blau'];
+  const free = Object.keys(BOTTLES).filter(k => !have.includes(k));
+  if (!free.length) return;
+  const k = pick(free);
+  state.bottles = [...have, k]; state.bottle = k;
+  const hasBottle = state.items.some(i => i.id === 'flasche');
+  toast(`Neue Flaschenfarbe: ${BOTTLES[k].name}!${hasBottle ? '' : ' Sie erscheint, sobald du die Trinkflasche findest.'}`);
+  confetti(60);
+}
 function commit() {
   D = derive(state);
   let askLine = false;
@@ -1653,7 +1679,11 @@ function commit() {
   }
   // Wochenziele: einmal pro Woche und Ziel feiern
   const gd = state.goalsDone[D.curWeek] || (state.goalsDone[D.curWeek] = []);
-  D.goals.forEach(g => { if (g.done && !gd.includes(g.id)) { gd.push(g.id); toast(`Wochenziel geschafft: ${g.label}`); } });
+  D.goals.forEach(g => {
+    if (!g.done || gd.includes(g.id)) return;
+    gd.push(g.id); toast(`Wochenziel geschafft: ${g.label}`);
+    if (g.id === 'water') unlockBottle();
+  });
   if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); }
   // Persönliche Rekorde feiern (nicht beim allerersten Wert)
   if (state.recs) {
@@ -1811,6 +1841,13 @@ function render() {
   $('items').innerHTML = found.length
     ? found.map(k => `<button type="button" class="item${state.hidden[k] ? ' off' : ''}" data-item="${k}" aria-pressed="${!state.hidden[k]}"><i></i>${ITEMS[k]} <span class="fine">${state.hidden[k] ? 'abgelegt' : dayLabel(owned[k])}</span></button>`).join('')
     : '<span class="fine">Noch keine Fundstücke. Sie tauchen nach dem Training zufällig auf.</span>';
+  // Flaschenfarben: freigeschaltete antippbar, fehlende als Schloss
+  const haveB = state.bottles || ['blau'], curB = bottleKey(state);
+  $('bottleBox').hidden = !owned.flasche && haveB.length < 2;
+  $('bottleCount').textContent = `${haveB.length} von ${Object.keys(BOTTLES).length}`;
+  $('bottleColors').innerHTML = Object.entries(BOTTLES).map(([k, b]) => haveB.includes(k)
+    ? `<button type="button" data-bottle="${k}" style="background:${b.c}" aria-pressed="${k === curB}" aria-label="${b.name}" title="${b.name}"></button>`
+    : `<button type="button" class="lock" disabled aria-label="Noch nicht freigeschaltet" title="Noch nicht freigeschaltet">?</button>`).join('');
 
   // Frühere Begleiter
   $('archiveBox').hidden = !state.archive.length;
@@ -1978,6 +2015,10 @@ $('items').addEventListener('click', e => {
   const b = e.target.closest('button[data-item]'); if (!b) return;
   const k = b.dataset.item; state.hidden[k] = !state.hidden[k]; if (!state.hidden[k]) delete state.hidden[k];
   save(); render(); tick();
+});
+$('bottleColors').addEventListener('click', e => {
+  const b = e.target.closest('button[data-bottle]'); if (!b) return;
+  state.bottle = b.dataset.bottle; save(); render(); tick();
 });
 // Wasser, Schlaf, Schritte
 const setHealth = (patch) => { state.health[state.day] = Object.assign({}, hp(state, state.day), patch); commit(); tick(); };
