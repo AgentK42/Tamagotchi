@@ -417,10 +417,6 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <span class="streak" id="streak"></span>
         <label class="switch"><input type="checkbox" id="pause"> Pause (krank, Urlaub)</label>
       </div>
-      <div class="newegg" id="newEggBox" hidden>
-        <p><b id="newEggTitle">Geschafft!</b> <span id="newEggText"></span></p>
-        <button class="btn" id="newEgg" type="button">Neues Ei ausbrüten</button>
-      </div>
     </section>
 
     <section class="card quest" aria-label="Tagesquest">
@@ -543,6 +539,11 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
           <button type="button" data-v="system">Wie Gerät</button>
         </div>
       </div>
+      <div class="egg-set">
+        <p class="lbl">Neues Ei</p>
+        <p class="fine" id="eggSetText"></p>
+        <div><button class="btn" id="eggSetBtn" type="button">Neues Ei ausbrüten</button></div>
+      </div>
       <div>
         <p class="lbl">Grafik</p>
         <div class="seg" id="gfxSeg" role="group" aria-label="Grafikstil">
@@ -600,6 +601,18 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas class="confetti" id="confetti" hidden aria-hidden="true"></canvas>
+<div class="evo" id="eggAsk" hidden role="dialog" aria-modal="true" aria-labelledby="eggAskTitle">
+  <div class="evo-card">
+    <canvas id="eggCanvas" width="40" height="40"></canvas>
+    <p class="eyebrow">12 Wochen geschafft</p>
+    <h2 id="eggAskTitle"></h2>
+    <p id="eggAskText"></p>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn primary" id="eggYes" type="button" style="width:auto">Ja, neues Ei</button>
+      <button class="btn" id="eggNo" type="button"></button>
+    </div>
+  </div>
+</div>
 <div class="evo" id="letter" hidden role="dialog" aria-modal="true" aria-labelledby="letterTitle">
   <div class="evo-card letter-card">
     <p class="eyebrow">Wochenbrief</p>
@@ -717,7 +730,7 @@ const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
 function freshState() {
   return { v: 1, name: 'Moro', day: 0, workouts: [], items: [], paused: false, sample: false, seenStage: 0, stageDays: {}, line: null,
-    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null, seenMaster: 0 };
+    start: localIso(), seed: Math.floor(Math.random() * 7), health: {}, questsDone: {}, tests: [], hidden: {}, archive: [], letterWeek: 0, recs: null, seenMaster: 0, eggAsked: false };
 }
 function sampleState() {
   const plan = [[0,'laufen',25,2],[2,'yoga',30,2],[4,'laufen',30,3],[7,'kraft',40,3],[9,'laufen',35,3],[11,'rad',50,2],[14,'laufen',40,3],[15,'kraft',45,3],[17,'laufen',45,4]];
@@ -1607,6 +1620,7 @@ function commit() {
     if (evoOpen) pendingLetter = D.curWeek - 1; else showLetter(D.curWeek - 1);
   }
   save(); render();
+  maybeAskEgg(); // nach 12 Wochen als Erwachsener einmal nachfragen
 }
 
 /* ---------- Wochenbrief ---------- */
@@ -1762,10 +1776,6 @@ function render() {
     ab.append(div);
   });
 
-  // Neues Ei nach 12 Wochen als Erwachsener
-  const canEgg = D.stage === 4 && D.curWeek + 1 >= 12;
-  $('newEggBox').hidden = !canEgg;
-  if (canEgg) { $('newEggTitle').textContent = `${n} ist durch!`; $('newEggText').textContent = `12 Wochen geschafft. ${n} zieht ins Album, und ein neues Ei wartet.`; }
 
   // Tagesquest
   $('questText').textContent = D.quest.text;
@@ -1860,13 +1870,17 @@ function showMaster(m) {
 $('evoClose').addEventListener('click', () => {
   $('evo').hidden = true; evoOpen = false;
   if (pendingMaster != null) { const m = pendingMaster; pendingMaster = null; showMaster(m); return; }
-  if (pendingLetter != null) { const w = pendingLetter; pendingLetter = null; showLetter(w); }
+  if (pendingLetter != null) { const w = pendingLetter; pendingLetter = null; showLetter(w); return; }
+  if (pendingEgg) { pendingEgg = false; maybeAskEgg(); }
 });
-$('letterClose').addEventListener('click', () => { $('letter').hidden = true; letterOpen = false; });
+$('letterClose').addEventListener('click', () => {
+  $('letter').hidden = true; letterOpen = false;
+  if (pendingEgg) { pendingEgg = false; maybeAskEgg(); }
+});
 $('letterOpen').addEventListener('click', () => { if (D.curWeek > 0) showLetter(D.curWeek - 1); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (evoOpen) $('evoClose').click(); else if (letterOpen) $('letterClose').click();
+  if (evoOpen) $('evoClose').click(); else if (letterOpen) $('letterClose').click(); else if (eggAskOpen) $('eggNo').click();
 });
 
 /* ---------- Formular aufbauen ---------- */
@@ -1934,18 +1948,43 @@ $('testForm').addEventListener('submit', e => {
   if (better.length) confetti(90);
   commit();
 });
-// Neues Ei nach 12 Wochen
-let eggArmed = null;
-$('newEgg').addEventListener('click', e => {
-  const b = e.currentTarget;
-  if (!eggArmed) { b.textContent = 'Wirklich? Tippen zum Bestätigen'; eggArmed = setTimeout(() => { b.textContent = 'Neues Ei ausbrüten'; eggArmed = null; }, 3500); return; }
-  clearTimeout(eggArmed); eggArmed = null; b.textContent = 'Neues Ei ausbrüten';
+// Neues Ei nach 12 Wochen: einmal nachfragen, bei „Nein“ später in den Einstellungen nachholbar
+const canEgg = () => D && D.stage === 4 && D.curWeek + 1 >= 12;
+let eggAskOpen = false, pendingEgg = false;
+function hatchNewEgg() {
   const old = state, s = freshState();
   s.archive = [...old.archive, { name: old.name, line: D.line, days: old.day + 1, xp: D.xp }];
-  s.style = old.style; s.name = 'Moro';
+  Object.assign(s, { style: old.style, theme: old.theme, tab: 'heute', name: 'Moro' });
   s.tests = old.tests.map(t => Object.assign({}, t, { day: t.day - (old.day + 1) }));
-  state = s; thumbCache.clear(); commit();
+  state = s; thumbCache.clear(); commit(); tick();
   toast(`${old.name} wohnt jetzt im Album. Ein neues Ei liegt bereit.`);
+}
+function showEggAsk() {
+  const n = state.name, l = D.line ? LINES[D.line] : null;
+  $('eggAskTitle').textContent = 'Neues Ei ausbrüten?';
+  $('eggAskText').textContent = `${n} ist ${l ? l.adultArt : 'erwachsen'} und ihr seid seit über 12 Wochen zusammen. Mit einem neuen Ei zieht ${n} ins Album unter „Frühere Begleiter“, und ein neues Abenteuer beginnt. Deine Messwerte bleiben erhalten.`;
+  $('eggNo').textContent = `Nein, mit ${n} weitermachen`;
+  drawInto($('eggCanvas'), { stage: 0, face: 'happy', norm: null, items: [], count: 2 }, 1);
+  $('eggAsk').hidden = false; eggAskOpen = true;
+  setTimeout(() => $('eggNo').focus(), 50);
+}
+function maybeAskEgg() {
+  if (!canEgg() || state.eggAsked) return;
+  if (evoOpen || letterOpen || eggAskOpen) { pendingEgg = true; return; }
+  state.eggAsked = true; save(); showEggAsk();
+}
+$('eggYes').addEventListener('click', () => { $('eggAsk').hidden = true; eggAskOpen = false; hatchNewEgg(); });
+$('eggNo').addEventListener('click', () => {
+  $('eggAsk').hidden = true; eggAskOpen = false;
+  toast('Alles klar. Du kannst das neue Ei jederzeit in den Einstellungen ausbrüten.');
+});
+let eggArmed = null;
+$('eggSetBtn').addEventListener('click', e => {
+  if (!canEgg()) return;
+  const b = e.currentTarget;
+  if (!eggArmed) { b.textContent = 'Wirklich? Nochmal tippen'; eggArmed = setTimeout(() => { b.textContent = 'Neues Ei ausbrüten'; eggArmed = null; }, 4000); return; }
+  clearTimeout(eggArmed); eggArmed = null; b.textContent = 'Neues Ei ausbrüten';
+  hatchNewEgg();
 });
 
 $('nextDay').addEventListener('click', () => {
@@ -2012,6 +2051,11 @@ function renderSettings() {
     + (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
     + 'Deine Daten liegen nur auf diesem Gerät. Ein Backup schützt sie, wenn du den Browser-Speicher leerst oder das Handy wechselst.';
   $('bkDownload').hidden = !REAL_TIME; // Downloads sind im Artefakt-Fenster gesperrt
+  const egg = canEgg();
+  $('eggSetText').textContent = egg
+    ? `${state.name} ist erwachsen und seit über 12 Wochen dabei. Mit einem neuen Ei zieht ${state.name} ins Album unter „Frühere Begleiter“.`
+    : `Möglich, sobald ${state.name} erwachsen ist und ihr mindestens 12 Wochen zusammen trainiert habt.`;
+  $('eggSetBtn').disabled = !egg;
 }
 $('setNameSave').addEventListener('click', () => { state.name = $('setName').value.trim() || 'Moro'; commit(); toast(`Dein Begleiter heißt jetzt ${state.name}.`); });
 $('setName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('setNameSave').click(); } });
