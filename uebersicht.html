@@ -1,0 +1,962 @@
+<title>Moro auf einen Blick</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: eine Spalte wie eine Laufbahn – Hero mit lebender Figur, dann der Weg in 12 Wochen, die Tierlinien, Features, Installation.
+   Bewusst nur dunkel: so sieht auch die App aus. */
+:root {
+  --bg: #0D1220;
+  --surface: #161D2E;
+  --stage: #1B2540;
+  --ink: #E7EBF5;
+  --muted: #98A1B7;
+  --line: #283149;
+  --accent: #7E98FF;
+  --accent-ink: #0D1220;
+  --gold: #F3C04A;
+  --good: #4CC995;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.015em; }
+p { margin: 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 60ch; font-size: 17px; }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.hero h1 { font-size: clamp(48px, 9vw, 88px); font-weight: 800; line-height: .95; }
+.hero h1 span { color: var(--accent); }
+.hero .lede { margin-top: 16px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; align-items: center; }
+.btn { display: inline-block; background: var(--accent); color: var(--accent-ink); font-weight: 700; text-decoration: none; padding: 12px 20px; border-radius: 12px; }
+.btn:hover { filter: brightness(1.08); }
+.url { font-family: var(--f-mono); font-size: 13px; color: var(--muted); user-select: all; overflow-wrap: anywhere; }
+.stage { position: relative; background: var(--stage); border-radius: 22px; aspect-ratio: 1; max-width: 100%; overflow: hidden; display: grid; place-items: center; }
+.stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 20%; background: repeating-linear-gradient(180deg, #222E4E 0 18px, rgba(255,255,255,.08) 18px 20px); }
+.stage canvas { position: relative; z-index: 1; width: 92%; aspect-ratio: 1; image-rendering: pixelated; }
+.stage .tag { position: absolute; z-index: 2; top: 14px; left: 14px; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 999px; }
+
+/* Warum */
+.why { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px; align-items: start; }
+.why h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; }
+.why .body { display: grid; gap: 12px; color: var(--muted); }
+.why .body b { color: var(--ink); }
+
+/* Weg in 12 Wochen */
+.section-head { display: grid; gap: 8px; margin-bottom: 20px; }
+.section-head h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; }
+.track { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; position: relative; }
+.track::before { content: ""; position: absolute; left: 6%; right: 6%; top: 46px; height: 2px; background: repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 14px); }
+.step { position: relative; display: grid; justify-items: center; text-align: center; gap: 6px; }
+.step canvas { width: 92px; height: 92px; image-rendering: pixelated; background: var(--stage); border-radius: 18px; }
+.step b { font-family: var(--f-display); font-size: 17px; }
+.step span { font-size: 13px; color: var(--muted); }
+.step .when { font-family: var(--f-mono); font-size: 12px; color: var(--gold); }
+
+/* Tierlinien */
+.lines { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.line { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 12px 16px; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.line canvas { width: 100%; max-width: 150px; aspect-ratio: 1; image-rendering: pixelated; }
+.line b { font-family: var(--f-display); font-size: 18px; }
+.line span { font-size: 13px; color: var(--muted); }
+
+/* Features */
+.groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; align-content: start; }
+.group h3 { font-size: 20px; font-weight: 800; }
+.group h3 small { display: block; font-family: var(--f-mono); font-size: 12px; font-weight: 500; color: var(--gold); letter-spacing: 0; margin-bottom: 2px; }
+.group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.group li { display: grid; gap: 2px; }
+.group li b { font-size: 15px; }
+.group li span { font-size: 14px; color: var(--muted); }
+
+/* Installieren */
+.install { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.install h2 { font-size: 26px; font-weight: 800; grid-column: 1 / -1; }
+.install h3 { font-size: 17px; margin-bottom: 6px; }
+.install ol { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; }
+.install ol b { color: var(--ink); }
+.facts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.facts span { font-size: 13px; font-weight: 600; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; color: var(--ink); }
+.facts span::before { content: "✓ "; color: var(--good); }
+
+footer { color: var(--muted); font-size: 13px; text-align: center; }
+
+@media (max-width: 760px) {
+  .hero, .why, .install { grid-template-columns: minmax(0, 1fr); }
+  .hero .stage { max-width: 420px; width: 100%; justify-self: center; }
+  .groups { grid-template-columns: minmax(0, 1fr); }
+  .lines { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .track { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .track::before { top: 30px; }
+  .step canvas { width: 60px; height: 60px; border-radius: 12px; }
+  .step b { font-size: 13px; }
+  .step span { display: none; }
+  .step .when { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Trainingsbegleiter · kostenlos · ohne Konto</p>
+      <h1>Moro wächst, <span>wenn du trainierst.</span></h1>
+      <p class="lede">Ein kleines Pixel-Wesen auf deinem Handy. Jede Trainingseinheit lässt es wachsen, Pausen machen es schläfrig. So siehst du Fortschritt schon in den Wochen, in denen der Spiegel noch nichts zeigt.</p>
+      <div class="cta">
+        <a class="btn" href="https://agentk42.github.io/Tamagotchi/" target="_blank" rel="noopener">Moro öffnen</a>
+        <span class="url">agentk42.github.io/Tamagotchi</span>
+      </div>
+    </div>
+    <div class="stage" aria-label="Moro in verschiedenen Entwicklungsstufen, wechselt automatisch" role="img">
+      <span class="tag" id="heroTag">Ei</span>
+      <canvas id="hero" width="240" height="240"></canvas>
+    </div>
+  </header>
+
+  <section class="why" aria-labelledby="whyH">
+    <h2 id="whyH">Die ersten Wochen sind die schwersten.</h2>
+    <div class="body">
+      <p>Wer neu mit Sport anfängt, sieht oft <b>6 bis 12 Wochen</b> lang kaum Veränderung. Genau dann hören die meisten wieder auf.</p>
+      <p>Dabei passiert im Körper längst viel: Das Nervensystem lernt, das Blutvolumen steigt, Muskeln bauen neue Mitochondrien. <b>Moro macht das sichtbar</b>, bis du es selbst sehen kannst.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="trackH">
+    <div class="section-head">
+      <p class="eyebrow">Vom Ei zum Tier</p>
+      <h2 id="trackH">Der Weg in 12 Wochen</h2>
+    </div>
+    <div class="track" id="track"></div>
+  </section>
+
+  <section aria-labelledby="linesH">
+    <div class="section-head">
+      <p class="eyebrow">Dein Training entscheidet</p>
+      <h2 id="linesH">Vier Tiere, je nach Sport</h2>
+      <p class="lede">Bis zur Teen-Stufe zeigt Moro schon mit kleinen Ohren, wohin die Reise geht. Wer anders trainiert, bekommt ein anderes Tier.</p>
+    </div>
+    <div class="lines" id="lines"></div>
+  </section>
+
+  <section aria-labelledby="featH">
+    <div class="section-head">
+      <p class="eyebrow">Was Moro kann</p>
+      <h2 id="featH">Klein im Alltag, groß über Wochen</h2>
+    </div>
+    <div class="groups">
+      <div class="group">
+        <h3><small>jeden Tag</small>Heute</h3>
+        <ul>
+          <li><b>Training eintragen</b><span>Sportart, Dauer und Intensität. Regelmäßigkeit zählt mehr als Marathon-Tage.</span></li>
+          <li><b>Stimmungen</b><span>Stolz nach dem Training, erholt am Ruhetag, schlapp nach langer Pause. Sterben kann Moro nie.</span></li>
+          <li><b>Tagesquest</b><span>Eine kleine Aufgabe pro Tag, zum Beispiel 10 Minuten Yoga, für Bonus-XP.</span></li>
+          <li><b>Wasser, Schlaf, Schritte</b><span>Bei 6 Gläsern Wasser glänzt Moro, Schritte geben Extra-Ausdauer.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3><small>jede Woche</small>Fortschritt</h3>
+        <ul>
+          <li><b>Wochenbrief</b><span>Moro schreibt dir, was du geschafft hast und was gerade in deinem Körper passiert.</span></li>
+          <li><b>Echte Messwerte</b><span>1 km Laufzeit, Liegestütze, Ruhepuls. In Woche 1, 4, 8 und 12 vergleichst du schwarz auf weiß.</span></li>
+          <li><b>Persönliche Rekorde</b><span>Längstes Training, beste Woche, längste Serie. Jeder neue Rekord gibt Konfetti.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3><small>über Monate</small>Sammlung</h3>
+        <ul>
+          <li><b>Fundstücke</b><span>Stirnband, Sneaker, Medaille und mehr, nach dem Training zufällig gefunden und an- und ablegbar.</span></li>
+          <li><b>Saisonale Extras</b><span>Bommelmütze, Blumenkranz, Sonnenhut und Herbstblatt gibt es nur in ihrer Jahreszeit.</span></li>
+          <li><b>Neues Ei nach 12 Wochen</b><span>Dein erwachsener Begleiter zieht ins Album, und das nächste Abenteuer beginnt.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="install" aria-labelledby="instH">
+    <h2 id="instH">In einer Minute auf dem Handy</h2>
+    <div>
+      <h3>iPhone</h3>
+      <ol>
+        <li>Link in <b>Safari</b> öffnen</li>
+        <li>Teilen-Symbol antippen</li>
+        <li><b>Zum Home-Bildschirm</b> wählen</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Android</h3>
+      <ol>
+        <li>Link in <b>Chrome</b> öffnen</li>
+        <li>Menü (drei Punkte) antippen</li>
+        <li><b>App installieren</b> wählen</li>
+      </ol>
+    </div>
+    <div class="facts">
+      <span>Funktioniert offline</span>
+      <span>Daten bleiben auf deinem Gerät</span>
+      <span>Kein Konto, keine Werbung</span>
+      <span>Darkmode</span>
+    </div>
+  </section>
+
+  <footer>Moro ist ein privates Projekt. Viel Spaß beim Ausprobieren.</footer>
+</div>
+
+<script>
+(() => {
+/* ---------- Pixel-Zeichnung ---------- */
+const PAL = {
+  moro: { fill: '#9CC0FF', shade: '#7DA3F0', out: '#2E4590', belly: '#E4EDFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#2E4590' },
+  aus:  { fill: '#FBF8F6', shade: '#E2DAE0', out: '#6A5870', belly: '#FFFFFF', hi: '#FFFFFF', inner: '#FFB3C7', nose: '#FF7FA0' },
+  kra:  { fill: '#C68D60', shade: '#A56E46', out: '#4A2C18', belly: '#F2D7BA', hi: '#E2B48C', inner: '#EDBB93', nose: '#3A2418' },
+  bew:  { fill: '#FFB168', shade: '#EC9046', out: '#7A3E12', belly: '#FFF0DF', hi: '#FFD6AE', inner: '#FFB3C7', nose: '#FF7FA0', stripe: '#E27A2C' },
+  hyb:  { fill: '#FF9536', shade: '#E8761A', out: '#4A220A', belly: '#FFF7EE', hi: '#FFC48A', inner: '#FFF7EE', nose: '#FF7FA0', stripe: '#24160E' },
+};
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const DARK = '#141B2D', RED = '#E5484D', GOLD = '#F5B82E', WHITE = '#FFFFFF', BLUSH = '#FF9DB0';
+
+function drawPet(ctx, L, f) {
+  ctx.clearRect(0, 0, 40, 40);
+  const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+  const cx = 20 + (L.face === 'restless' && L.stage > 0 ? [0, 1, 0, -1][f % 4] : 0), ground = 34;
+  ctx.fillStyle = 'rgba(19,26,44,.18)';
+  ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1);
+
+  const shape = (rx, ry, egg) => (x, y) => { const r = (egg && y < 0) ? rx * .8 : rx; return (x * x) / (r * r) + (y * y) / (ry * ry) <= 1.1; };
+  const blob = (ox, oy, rx, ry, c, egg, noHi) => {
+    const ins = shape(rx, ry, egg);
+    for (let y = -ry - 1; y <= ry + 1; y++) for (let x = -rx - 1; x <= rx + 1; x++) {
+      if (!ins(x, y)) continue;
+      const edge = !ins(x + 1, y) || !ins(x - 1, y) || !ins(x, y + 1) || !ins(x, y - 1);
+      let col = edge ? c.out : ((x / rx + y / ry) > .6 ? c.shade : c.fill);
+      const hx = -Math.round(rx * .45), hy = -Math.round(ry * .5);
+      if (!noHi && !edge && x === hx && (y === hy || y === hy + 1)) col = c.hi;
+      P(ox + x, oy + y, col);
+    }
+    return ins;
+  };
+  const items = new Set(L.items || []);
+
+  if (L.stage === 0) {
+    const rx = 6, ry = 8, cy = ground - ry - 1;
+    let wob = 0;
+    if (L.face === 'happy' || L.count >= 2) wob = [0, 1, 0, -1][f % 4];
+    else if (L.count === 1) wob = f % 10 < 2 ? [1, -1][f % 2] : 0;
+    const ex = cx + wob;
+    blob(ex, cy, rx, ry, { fill: '#FBF6EA', shade: '#E7DEC9', out: '#8C93A8', hi: '#FFFFFF' }, true);
+    [[-2, -3], [2, 1], [-3, 3], [1, -5], [3, 4]].forEach(([x, y]) => P(ex + x, cy + y, '#7FA7FF'));
+    if (L.count >= 1) [[-4, 0], [-3, -1], [-2, 0], [-1, -1], [0, 0]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    if (L.count >= 2) [[1, -1], [2, 0], [3, -1], [4, 0], [0, 1]].forEach(([x, y]) => P(ex + x, cy + y, '#5D6478'));
+    return;
+  }
+
+  const st = L.stage;
+  const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
+  let c = PAL[kind];
+  if (L.face === 'sad') c = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, mix(v, '#9AA0AE', .4)]));
+  const size = { 1: [5, 4], 2: [6, 6], 3: [7, 7], 4: [8, 8] }[st];
+  const rx = size[0] + (kind === 'kra' ? (st === 4 ? 2 : 1) : kind === 'hyb' && st === 4 ? 1 : 0), ry = size[1];
+  const box = (x, y, w, h) => { const a = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) a.push([x + i, y + j]); return a; };
+  const mask = (pts, col) => {
+    const k = new Set(pts.map(([x, y]) => x + ',' + y)), has = (x, y) => k.has(x + ',' + y);
+    pts.forEach(([x, y]) => P(x, y, (!has(x + 1, y) || !has(x - 1, y) || !has(x, y + 1) || !has(x, y - 1)) ? col.out : col.fill));
+  };
+  const fh = st === 1 ? 1 : 2, fw = st >= 3 ? 3 : 2;
+  const up = f % 4 < 2;
+  const hop = L.face === 'happy' && up ? -1 : 0;
+  const cy = ground - 1 - fh - ry + hop;
+  const ins = shape(rx, ry, false);
+  const topAt = dx => { let ty = -ry - 1; while (!ins(dx, ty) && ty < 0) ty++; return cy + ty; };
+
+  // Gegenstände am Boden
+  if (items.has('hantel') && st >= 2) { const x = cx + rx + 4; R(x, ground - 3, 2, 3, '#3A4256'); R(x + 2, ground - 2, 3, 1, '#9AA3B5'); R(x + 5, ground - 3, 2, 3, '#3A4256'); }
+  { // Gefaltetes Handtuch am Boden, die Trinkflasche steht darauf
+    const towel = items.has('handtuch'), TW = 12, tx = Math.max(1, 20 - rx - TW - 2);
+    let base = ground;
+    if (towel) { // ausgebreitetes Badetuch: zwei Streifen an jedem Ende, Fransen an den Kanten
+      R(tx, ground - 3, TW, 1, '#5FD3C2'); R(tx, ground - 2, TW, 1, '#2BB3A0'); R(tx, ground - 1, TW, 1, '#17675C');
+      [1, 3, TW - 2, TW - 4].forEach(o => R(tx + o, ground - 3, 1, 2, WHITE));
+      [-1, TW].forEach(o => { P(tx + o, ground - 3, '#17675C'); P(tx + o, ground - 1, '#17675C'); });
+      base = ground - 3;
+    }
+    if (items.has('flasche')) {
+      const x = towel ? tx + Math.floor(TW / 2) - 1 : 20 - rx - 7;
+      R(x, base - 5, 3, 5, '#2F5BFF'); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, '#9DB4FF');
+    }
+  }
+
+  // Hinter dem Körper: Schwanz
+  if (kind === 'bew' || kind === 'hyb') {
+    const s = f % 8 < 4 ? 0 : 1;
+    const pts = [[rx - 2, ry - 1], [rx - 1, ry - 2], [rx, ry - 2], [rx + 1, ry - 3], [rx + 2, ry - 4], [rx + 2, ry - 5], [rx + 2, ry - 6], [rx + 1 + s, ry - 7], [rx + s, ry - 8]];
+    pts.forEach(([x, y]) => R(cx + x - 1, cy + y - 1, 3, 3, c.out));
+    pts.forEach(([x, y], i) => P(cx + x, cy + y, kind === 'hyb' ? (i > 2 && i % 2 ? c.stripe : c.fill) : i >= pts.length - 2 ? c.stripe : c.fill));
+  }
+  if (kind === 'aus') blob(cx + rx, cy + ry - 2, 2, 2, c, false, true);
+
+  // Ohren: bei Kind als Andeutung der kommenden Tier-Linie
+  const earKind = st >= 3 ? kind : st === 2 ? L.lean : null;
+  if (earKind === 'aus') {
+    const h = st === 2 ? 3 : st === 3 ? 6 : 8;
+    [-1, 1].forEach(s => {
+      const dx = s * Math.max(2, Math.round(rx * .4));
+      const base = topAt(dx) + 1;
+      for (let i = 0; i < h; i++) {
+        const tilt = st === 4 && s === 1 && i >= h - 3 ? i - (h - 4) : 0;
+        const x = cx + dx - 1 + tilt, y = base - i;
+        if (i === h - 1) { P(x + 1, y, c.out); continue; }
+        P(x, y, c.out); P(x + 2, y, c.out); P(x + 1, y, i >= 1 && i <= h - 3 ? c.inner : c.fill);
+      }
+    });
+  } else if (earKind === 'kra') {
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const oy = topAt(dx) + (st === 2 ? 0 : 1);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy, c.inner); P(cx + dx, oy - 1, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); }
+    });
+  } else if (earKind === 'hyb') { // kleine runde Tigerohren mit hellem Inneren
+    const r = st === 2 ? 1 : st === 3 ? 2 : 3;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - 3);
+      const oy = topAt(dx);
+      blob(cx + dx, oy, r, r, c, false, true);
+      if (r >= 2) { P(cx + dx, oy - 1, c.inner); P(cx + dx, oy, c.inner); }
+      if (r === 3) { P(cx + dx - 1, oy, c.inner); P(cx + dx + 1, oy, c.inner); P(cx + dx, oy - 2, c.stripe); }
+    });
+  } else if (earKind === 'bew') {
+    const h = st === 2 ? 2 : st === 3 ? 3 : 4;
+    [-1, 1].forEach(s => {
+      const dx = s * (rx - (st === 2 ? 2 : 3));
+      const base = topAt(dx) + 1;
+      for (let i = 1; i <= h; i++) {
+        const w = Math.round((h - i) * .7), y = base - i;
+        for (let x = -w; x <= w; x++) {
+          const edge = Math.abs(x) === w;
+          P(cx + dx + x, y, edge ? c.out : (Math.abs(x) <= w - 1 && i <= h - 1 ? c.inner : c.fill));
+        }
+      }
+    });
+  }
+
+  // Arme / Pfoten
+  if (kind === 'kra') {
+    // Muskelarme: hängend mit Bizeps, beim Jubeln (Erwachsen auch in Ruhe) im Doppelbizeps
+    const big = st === 4;
+    const flex = (L.face === 'happy' && up) || (big && L.face === 'content');
+    let arm;
+    if (flex) arm = big
+      ? [...box(-1, -1, 6, 3), ...box(1, -2, 3, 1), ...box(3, -7, 3, 6)]
+      : [...box(-1, -1, 5, 2), ...box(1, -2, 2, 1), ...box(2, -5, 3, 4)];
+    else arm = big
+      ? [...box(-1, 0, 4, 7), ...box(3, 1, 1, 3)]
+      : [...box(-1, 0, 3, 5), ...box(2, 1, 1, 2)];
+    [-1, 1].forEach(s => mask(arm.map(([u, v]) => [cx + s * (rx + u), cy + v]), c));
+  } else if (st >= 2 && L.face === 'happy' && up) {
+    [cx - rx - 1, cx + rx].forEach(x => R(x, cy - 2, 2, 2, c.out));
+  }
+
+  // Füße
+  [cx - 1 - fw, cx + 2].forEach(x0 => {
+    const y0 = cy + ry + 1;
+    if (items.has('sneaker') && st >= 2) { R(x0, y0, fw, fh, RED); P(x0 + (x0 < cx ? 0 : fw - 1), y0 + fh - 1, WHITE); return; }
+    R(x0, y0, fw, fh, c.out);
+    if (fw >= 3 && fh >= 2) R(x0 + 1, y0, fw - 2, fh - 1, c.fill);
+  });
+
+  // Körper
+  blob(cx, cy, rx, ry, c, false);
+  if (kind === 'kra') { // Brust-Halbmond und Bauchmuskeln
+    const p = cy + 4;
+    [[-4, 0], [-3, 0], [3, 0], [4, 0], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]].forEach(([x, y]) => P(cx + x, p + y, c.belly));
+    if (st === 4) [[-1, 2], [1, 2], [-1, 3], [1, 3]].forEach(([x, y]) => P(cx + x, p + y, c.shade));
+  }
+  if (st >= 2 && kind !== 'aus' && kind !== 'kra') {
+    const brx = Math.round(rx * .5), bry = 1, by = cy + ry - 2;
+    for (let y = -bry; y <= bry; y++) for (let x = -brx; x <= brx; x++) {
+      const yy = by - cy + y;
+      if ((x * x) / (brx * brx) + (y * y) / (bry * bry) <= 1 && ins(x, yy + 1) && ins(x - 1, yy) && ins(x + 1, yy)) P(cx + x, by + y, c.belly);
+    }
+  }
+  if (kind === 'bew') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe)); }
+  if (kind === 'hyb') { // Tigerstreifen: Stirn und Flanken
+    const t = cy - ry;
+    [[0, 1], [0, 2], [0, 3], [-3, 2], [-2, 2], [2, 2], [3, 2]].forEach(([x, y]) => P(cx + x, t + y, c.stripe));
+    [1, 3, 5].forEach(dy => {
+      if (dy >= ry - 1) return;
+      let w = rx; while (w > 0 && !ins(w, dy)) w--;
+      const len = dy === 3 ? 3 : 2;
+      for (let i = 1; i <= len; i++) { P(cx - w + i, cy + dy, c.stripe); P(cx + w - i, cy + dy, c.stripe); }
+    });
+  }
+  if (st === 2 && L.lean === 'hyb') { const t = cy - ry; [[0, 1], [0, 2], [-2, 2], [2, 2]].forEach(([x, y]) => P(cx + x, t + y, c.out)); }
+  if (st === 1) { // Eierschale auf dem Kopf
+    R(cx - 3, cy - ry - 1, 6, 2, '#FBF6EA'); P(cx - 3, cy - ry - 2, '#FBF6EA'); P(cx, cy - ry - 2, '#FBF6EA'); P(cx + 2, cy - ry - 2, '#FBF6EA');
+    R(cx - 3, cy - ry + 1, 6, 1, '#8C93A8');
+  }
+  if (items.has('stirnband')) {
+    const by = cy - ry + 2;
+    for (let x = -rx; x <= rx; x++) if (ins(x, by - cy) && ins(x - 1, by - cy) && ins(x + 1, by - cy)) P(cx + x, by, RED);
+    let w = rx; while (!ins(w, by - cy)) w--;
+    P(cx + w + 1, by + 1, RED); P(cx + w + 2, by + 2, RED);
+  }
+  // Saisonale Fundstücke (Retro)
+  if (items.has('muetze')) {
+    const hb = cy - ry + 2;
+    for (let y = cy - ry - 1; y <= hb; y++) for (let x = -rx; x <= rx; x++) if (ins(x, y - cy)) P(cx + x, y, y === hb ? '#F4F1EC' : ((x + 40) % 2 ? '#E5484D' : '#C93A40'));
+    R(cx - 1, cy - ry - 3, 3, 2, '#F4F1EC');
+  }
+  if (items.has('sonnenhut')) { R(cx - rx + 1, cy - ry + 1, 2 * rx - 1, 1, '#DDB45A'); R(cx - 3, cy - ry - 2, 7, 3, '#F2CF7A'); R(cx - 3, cy - ry, 7, 1, '#E5484D'); }
+  if (items.has('kranz')) [-4, -2, 0, 2, 4].forEach((x, i) => P(cx + x, topAt(x) + 1, ['#FF9DB0', '#FFFFFF', '#FFD25E', '#FFFFFF', '#FF9DB0'][i]));
+  if (items.has('blatt')) { const x = cx + Math.round(rx * .45), y = cy - ry + 1; R(x, y, 2, 2, '#D9472B'); P(x + 2, y - 1, '#D9472B'); P(x + 1, y - 1, '#D9472B'); P(x - 1, y + 2, '#5A1608'); }
+  if (L.shine) { P(cx - rx - 2, cy - ry + 3, '#7FC4FF'); P(cx + rx + 2, cy - ry + 6, '#7FC4FF'); P(cx - rx - 2, cy - ry + 2, '#CFE8FF'); }
+
+  // Gesicht
+  const ex = Math.max(2, Math.round(rx * .42));
+  const eh = st >= 3 ? 3 : 2;
+  const ey = cy - (st >= 3 ? 2 : 1);
+  const my = ey + eh + 1;
+  const face = L.face, blink = f % 28 === 0;
+  const eyes = [cx - ex - 1, cx + ex];
+  if (kind === 'kra' || kind === 'hyb') for (let y = -1; y <= 1; y++) for (let x = -3; x <= 3; x++) if (x * x / 9 + y * y / 2.2 <= 1) P(cx + x, my + y, c.belly);
+  eyes.forEach((x, i) => {
+    if (face === 'happy') { P(x - 1, ey + 1, DARK); P(x, ey, DARK); P(x + 1, ey, DARK); P(x + 2, ey + 1, DARK); }
+    else if (face === 'sleep') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
+    else if (blink) R(x, ey + eh - 1, 2, 1, DARK);
+    else {
+      R(x, ey, 2, eh, DARK); P(x, ey, WHITE);
+      if (eh === 3) P(x + 1, ey + 2, '#6B7BA8');
+      if (face === 'sad') { const l = i === 0; P(l ? x : x + 1, ey - 1, DARK); P(l ? x + 1 : x, ey - 2, DARK); }
+    }
+  });
+  if (face === 'happy' || face === 'content') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
+  if (kind === 'kra') R(cx - 1, my - 1, 3, 1, c.nose);
+  else if (kind !== 'moro') P(cx, my - 1, c.nose);
+  if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
+  else if (face === 'sad') { P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); }
+  else if (face === 'sleep') P(cx, my, DARK);
+  else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
+  else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
+  else if (face === 'content' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
+  else P(cx, my, DARK);
+  if (kind === 'bew') { R(cx - rx - 2, my - 1, 2, 1, c.out); R(cx - rx - 2, my + 1, 2, 1, c.out); R(cx + rx + 1, my - 1, 2, 1, c.out); R(cx + rx + 1, my + 1, 2, 1, c.out); }
+  if (items.has('medaille') && st >= 3) { // Band von den Seiten bis zur Medaille unten am Bauch
+    const y = cy + ry - 3;
+    let w = rx; while (w > 0 && !ins(w, 1)) w--;
+    [-1, 1].forEach(s => {
+      const x0 = cx + s * (w - 1), y0 = cy + 1, x1 = cx + s * 2, y1 = y - 1, n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let i = 0; i <= n; i++) P(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, '#2F5BFF');
+    });
+    R(cx - 1, y, 3, 3, GOLD); P(cx, y + 1, '#FFE08A'); P(cx - 1, y + 2, '#B9820C'); P(cx + 1, y + 2, '#B9820C');
+  }
+  if (face === 'sad') { P(eyes[0], ey + eh, '#7FC4FF'); P(eyes[0], ey + eh + 1, '#7FC4FF'); }
+  if (face === 'sleep') {
+    const zz = (x, y) => [[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]].forEach(([a, b]) => P(x + a, y + b, '#7C97FF'));
+    const o = f % 12;
+    zz(cx + rx + 1, cy - ry - 1 - Math.floor(o / 3));
+    if (o > 5) zz(cx + rx + 5, cy - ry - 5 - Math.floor((o - 6) / 3));
+  }
+}
+
+/* ---------- Highres-Zeichnung (240 × 240) ---------- */
+const HI_N = 240;
+const HPAL = {
+  moro: { fill: '#9CC0FF', mid: '#8EB4FA', shade: '#7DA3F0', deep: '#6489DC', out: '#2E4590', hi: '#BBD2FF', hi2: '#D3E2FF', belly: '#E4EDFF', bellyS: '#CCDCFA', inner: '#FFB3C7', nose: '#2E4590' },
+  aus:  { fill: '#FBF8F6', mid: '#F3EEEF', shade: '#E4DCE2', deep: '#CFC4CD', out: '#6A5870', hi: '#FFFFFF', hi2: '#FFFFFF', belly: '#FFFFFF', bellyS: '#EEE6E9', inner: '#FFB3C7', nose: '#FF7FA0' },
+  kra:  { fill: '#C99063', mid: '#BC8258', shade: '#AE754B', deep: '#8C5835', out: '#4A2C18', hi: '#E0AE82', hi2: '#EBBF97', belly: '#F4DCC0', bellyS: '#E2BF98', inner: '#EFC09A', nose: '#3A2418' },
+  bew:  { fill: '#FFB168', mid: '#F8A35B', shade: '#EC9046', deep: '#D2752F', out: '#7A3E12', hi: '#FFC890', hi2: '#FFD9B0', belly: '#FFF0DF', bellyS: '#F6DCC0', inner: '#FFB3C7', nose: '#FF7FA0', stripe: '#E27A2C' },
+  hyb:  { fill: '#FF9536', mid: '#F6872B', shade: '#E8761A', deep: '#C95F10', out: '#4A220A', hi: '#FFB066', hi2: '#FFC48A', belly: '#FFF7EE', bellyS: '#F3E2CF', inner: '#FFF7EE', nose: '#FF7FA0', stripe: '#24160E' },
+};
+
+function drawPetHi(ctx, L, f) {
+  const N = HI_N, k = N / 120;
+  ctx.clearRect(0, 0, N, N);
+  const PX = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const mk = () => new Uint8Array(N * N);
+  const has = (m, x, y) => x >= 0 && y >= 0 && x < N && y < N && m[y * N + x] === 1;
+  const ell = (m, ox, oy, rx, ry, egg) => {
+    ox *= k; oy *= k; rx *= k; ry *= k;
+    for (let y = Math.floor(oy - ry); y <= Math.ceil(oy + ry); y++) for (let x = Math.floor(ox - rx - 1); x <= Math.ceil(ox + rx + 1); x++) {
+      const r = egg && y + .5 < oy ? rx * .82 : rx;
+      const dx = (x + .5 - ox) / r, dy = (y + .5 - oy) / ry;
+      if (dx * dx + dy * dy <= 1 && x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = 1;
+    }
+  };
+  const cap = (m, x1, y1, x2, y2, r1, r2) => {
+    const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) * 2 * k) + 1;
+    for (let i = 0; i <= n; i++) { const t = i / n, r = r1 + (r2 - r1) * t; ell(m, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, r, r); }
+  };
+  const chain = (m, pts, r0, r1) => {
+    let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    let acc = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      cap(m, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], r0 + (r1 - r0) * acc / total, r0 + (r1 - r0) * (acc + d) / total);
+      acc += d;
+    }
+  };
+  const tri = (m, a, b, c3) => {
+    const P3 = [a, b, c3].map(([x, y]) => [x * k, y * k]);
+    const xs = P3.map(p => p[0]), ys = P3.map(p => p[1]);
+    const sgn = (p, q, r) => (p[0] - r[0]) * (q[1] - r[1]) - (q[0] - r[0]) * (p[1] - r[1]);
+    for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
+      const p = [x + .5, y + .5], d1 = sgn(p, P3[0], P3[1]), d2 = sgn(p, P3[1], P3[2]), d3 = sgn(p, P3[2], P3[0]);
+      if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)) && x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = 1;
+    }
+  };
+  const T = Math.max(1, Math.round(k));
+  const isEdge = (m, x, y) => { for (let d = 1; d <= T; d++) if (!has(m, x + d, y) || !has(m, x - d, y) || !has(m, x, y + d) || !has(m, x, y - d)) return true; return false; };
+  const o = v => Math.round(v * k);
+  const paint = (m, p) => {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!has(m, x, y)) continue;
+      let c;
+      if (isEdge(m, x, y)) c = p.out;
+      else if (!has(m, x + o(2), y + o(2))) c = p.deep;
+      else if (!has(m, x + o(4), y + o(4))) c = p.shade;
+      else if (!has(m, x + o(6.5), y + o(6.5))) c = p.mid;
+      else if (!has(m, x - o(1.6), y - o(1.6))) c = p.hi2;
+      else if (!has(m, x - o(3), y - o(3))) c = p.hi;
+      else c = p.fill;
+      PX(x, y, c);
+    }
+  };
+  const fill = (m, col) => { for (let i = 0; i < N * N; i++) if (m[i]) PX(i % N, (i / N) | 0, col); };
+  const spot = (ox, oy, rx, ry, col) => { const m = mk(); ell(m, ox, oy, rx, ry); fill(m, col); };
+  const line = (pts, r, col) => { const m = mk(); if (pts.length === 1) ell(m, pts[0][0], pts[0][1], r, r); else chain(m, pts, r, r); fill(m, col); };
+  const DK = '#141B2D', lw = .55;
+  const items = new Set(L.items || []);
+  const face = L.face;
+  const up = face === 'happy' && f % 4 < 2;
+  const shadow = w0 => {
+    ctx.fillStyle = 'rgba(19,26,44,.16)';
+    [.9, 1, .93, .7].forEach((s, i) => { const w = w0 * s * (up ? .82 : 1) * k; ctx.fillRect(Math.round(60 * k - w / 2), (108 + i) * k, Math.round(w), k); });
+  };
+
+  // Ei
+  if (L.stage === 0) {
+    const wob = (face === 'happy' || L.count >= 2) ? [0, 2, 0, -2][f % 4] : L.count === 1 && f % 10 < 2 ? [2, -2][f % 2] : 0;
+    shadow(34);
+    ctx.save(); ctx.translate(wob * k, 0);
+    const m = mk(); ell(m, 60, 86, 17, 21, true);
+    paint(m, { fill: '#FBF6EA', mid: '#F3ECDC', shade: '#E7DEC9', deep: '#D3C7AC', out: '#8C93A8', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    [[53, 79, 3, 2.4], [66, 89, 3.4, 2.6], [55, 97, 2.6, 2], [64, 73, 2, 1.6], [69, 98, 2, 1.5]].forEach(([x, y, a, b]) => spot(x, y, a, b, '#9CC0FF'));
+    if (L.count >= 1) line([[45, 87], [49, 84], [52, 88], [56, 84], [60, 88]], .75, '#5D6478');
+    if (L.count >= 2) line([[60, 88], [64, 84], [68, 88], [72, 85], [75, 87]], .75, '#5D6478');
+    ctx.restore();
+    return;
+  }
+
+  const st = L.stage, baby = st === 1;
+  const kind = st >= 3 ? (L.line || L.lean || 'aus') : 'moro';
+  let c = HPAL[kind];
+  if (face === 'sad') c = Object.fromEntries(Object.entries(c).map(([a, v]) => [a, mix(v, '#9AA0AE', .4)]));
+  const size = { 1: [22, 18], 2: [26, 23], 3: [29, 26], 4: [32, 29] }[st];
+  const rx = size[0] + (kind === 'kra' && st === 3 ? 1 : 0), ry = size[1];
+  const footRy = baby ? 4 : 6, footY = baby ? 104.5 : 103;
+  const cy = (baby ? 102 : 99) - ry, cx = 60, top = cy - ry, sc = rx / 32;
+  const hop = up ? -4 : 0, jit = face === 'restless' ? [0, 2, 0, -2][f % 4] : 0;
+  shadow(rx * 1.7);
+
+  // Gegenstände am Boden
+  if (items.has('hantel') && st >= 2) {
+    const x = Math.min(60 + rx + 6, 100);
+    line([[x + 2, 104], [x + 14, 104]], 1, '#9AA3B5');
+    [x + 1.5, x + 14.5].forEach(px => { const m = mk(); ell(m, px, 104, 2.8, 5.2); paint(m, { fill: '#4A5268', mid: '#454C62', shade: '#3A4256', deep: '#2E3446', out: '#1C2130', hi: '#6A7390', hi2: '#808AA6' }); });
+  }
+  {
+    const towel = items.has('handtuch'), tw = 28, tx = Math.max(2, 60 - rx - tw - 3);
+    let base = 109;
+    if (towel) {
+      const m = mk(); cap(m, tx + 3, 106, tx + tw - 3, 106, 3, 3);
+      paint(m, { fill: '#2BB3A0', mid: '#27A897', shade: '#209585', deep: '#1A7D70', out: '#0F4F47', hi: '#5FD3C2', hi2: '#86E0D3' });
+      [4, 6.5, tw - 6.5, tw - 4].forEach(dx => line([[tx + dx, 104], [tx + dx, 107.6]], .6, '#FFFFFF'));
+      [[tx - .5, 104.5, tx - 2.4, 105], [tx - .5, 107.5, tx - 2.4, 108], [tx + tw + .5, 104.5, tx + tw + 2.4, 105], [tx + tw + .5, 107.5, tx + tw + 2.4, 108]].forEach(([a, b, d, e]) => line([[a, b], [d, e]], .45, '#0F4F47'));
+      base = 103;
+    }
+    if (items.has('flasche')) {
+      const bx = towel ? tx + tw / 2 : 60 - rx - 10;
+      const m = mk(); cap(m, bx, base - 4, bx, base - 14, 4, 4);
+      paint(m, { fill: '#2F5BFF', mid: '#2A52EA', shade: '#2448D2', deep: '#1C39A8', out: '#122670', hi: '#7D97FF', hi2: '#A9BBFF' });
+      spot(bx, base - 9, 3.2, 1.8, '#9DB4FF');
+      const cm = mk(); ell(cm, bx, base - 19.5, 2.6, 1.9); paint(cm, { fill: '#E8ECF5', mid: '#E0E5F0', shade: '#CFD6E4', deep: '#B9C2D4', out: '#5B6478', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    }
+  }
+
+  ctx.save(); ctx.translate(Math.round(jit * k), Math.round(hop * k));
+
+  // Füße
+  const sneak = items.has('sneaker') && st >= 2;
+  const fp = sneak ? { fill: '#E5484D', mid: '#DC3F44', shade: '#C9373C', deep: '#A82B30', out: '#5A1416', hi: '#F27A7E', hi2: '#F79A9D' } : c;
+  [-1, 1].forEach(s => {
+    const fx = cx + s * rx * .44, m = mk(); ell(m, fx, footY, rx * .31, footRy); paint(m, fp);
+    if (sneak) { line([[fx - rx * .22, footY + footRy - 1.8], [fx + rx * .22, footY + footRy - 1.8]], .7, '#FFFFFF'); spot(fx, footY - 2, 1, 1, '#FFFFFF'); }
+  });
+
+  // Schwänze (hinter dem Körper)
+  const sway = f % 8 < 4 ? 0 : 2;
+  if (kind === 'bew' || kind === 'hyb') {
+    // glatte Kurve (kubische Bézierkurve, dicht abgetastet) statt eckiger Segmente
+    // Ansatz unten am Rücken (hinter dem Körper), dann flach nach außen und in einem Bogen nach oben
+    const B = [[rx - 12, ry - 4], [rx + 9, ry + 1], [rx + 15 + sway * .5, ry - 12], [rx + 9 + sway, ry - 25]].map(([x, y]) => [cx + x, cy + y]);
+    const at = t => { const u = 1 - t; return [0, 1].map(i => u * u * u * B[0][i] + 3 * u * u * t * B[1][i] + 3 * u * t * t * B[2][i] + t * t * t * B[3][i]); };
+    const pts = Array.from({ length: 41 }, (_, i) => at(i / 40));
+    const m = mk(); chain(m, pts, 5, 4); paint(m, c);
+    const tip = pts[pts.length - 1];
+    if (kind === 'hyb') { // Ringe nur innerhalb des Schwanzes, quer zur Kurve
+      [.42, .6, .77].forEach(t => {
+        const [x1, y1] = at(t - .02), [x2, y2] = at(t + .02), d = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / d, ny = (x2 - x1) / d, [mx, my] = at(t);
+        const r = mk(); cap(r, mx - nx * 6, my - ny * 6, mx + nx * 6, my + ny * 6, 1.05, 1.05);
+        for (let i = 0; i < N * N; i++) if (r[i] && m[i] && !isEdge(m, i % N, (i / N) | 0)) PX(i % N, (i / N) | 0, c.stripe);
+      });
+    }
+    { const tm = mk(); ell(tm, tip[0], tip[1], 6, 6); for (let i = 0; i < N * N; i++) if (tm[i] && m[i] && !isEdge(m, i % N, (i / N) | 0) && ((i / N) | 0) < (tip[1] + 1.5) * k) PX(i % N, (i / N) | 0, c.stripe); }
+  }
+
+  // Ohren (bei Kind als Andeutung der Linie)
+  const earKind = st >= 3 ? kind : st === 2 ? L.lean : null;
+  const es = st === 2 ? .45 : st === 3 ? .8 : 1;
+  if (earKind === 'aus') {
+    [-1, 1].forEach(s => {
+      const bx = cx + s * rx * .34, by = top + 7, len = 34 * es + (st === 2 ? 3 : 0);
+      const bend = st === 4 && s === 1;
+      const path = bend ? [[bx, by], [bx + s * 2, by - len * .62], [bx + s * 13, by - len * .62 + 5]] : [[bx, by], [bx + s * 3 * es, by - len]];
+      const m = mk(); chain(m, path, 6.4 * es + .6, 5.2 * es + .5); paint(m, c);
+      const ip = path.map((p, i) => i === 0 ? [p[0] + (path[1][0] - p[0]) * .22, p[1] + (path[1][1] - p[1]) * .22] : p);
+      const im = mk(); chain(im, ip, 2.9 * es + .2, 2.1 * es + .2); fill(im, c.inner);
+    });
+  } else if (earKind === 'kra') {
+    [-1, 1].forEach(s => { const x = cx + s * rx * .69, y = top + 6, m = mk(); ell(m, x, y, 10.5 * es + .5, 10 * es + .5); paint(m, c); spot(x, y + .5, 5.5 * es, 5 * es, c.inner); });
+  } else if (earKind === 'hyb') {
+    [-1, 1].forEach(s => {
+      const x = cx + s * rx * .66, y = top + 5, m = mk(); ell(m, x, y, 9 * es + .5, 8.5 * es + .5); paint(m, c);
+      spot(x, y + 1, 4.6 * es, 4.2 * es, c.inner);
+      if (st >= 3) spot(x, y - 6.2 * es, 3.4 * es, 1.6 * es, c.stripe);
+    });
+  } else if (earKind === 'bew') {
+    [-1, 1].forEach(s => {
+      // äußere Basisecke endet innerhalb der Kopfkontur, damit nichts seitlich absteht
+      const x = cx + s * rx * .46, b = top + 10, h = 21 * es + 3, w = 10 * es + 1;
+      const edge = rx * Math.sqrt(Math.max(0, 1 - ((b - cy) / ry) ** 2)) - 2.5;
+      const outer = cx + s * Math.min(Math.abs(x + s * w - cx), edge);
+      const m = mk(); tri(m, [x - s * w, b], [outer, b], [x + s * 3 * es, b - h]); paint(m, c);
+      const im = mk(); tri(im, [x - w * .5, b - 1], [x + w * .5, b - 1], [x + s * 2.2 * es, b - h * .66]); fill(im, c.inner);
+    });
+  }
+
+  // Arme und Pfoten
+  const bearFlex = kind === 'kra' && (face === 'happy' || (st === 4 && face === 'content'));
+  if (kind === 'kra') {
+    const g = st === 4 ? 1 : .8, rr = st === 4 ? 1 : .87, pump = up ? -4 : 0, flexR = up ? 1.2 : 0;
+    [-1, 1].forEach(s => {
+      const X = v => cx + s * v;
+      const m = mk();
+      if (bearFlex) {
+        cap(m, X(rx - 6), cy + 6, X(rx + 10 * g), cy + 1 + pump * .4, 8.5 * rr, 7.5 * rr);
+        ell(m, X(rx + 5 * g), cy - 6 + pump * .4, (9 + flexR) * rr, (7.5 + flexR) * rr);
+        cap(m, X(rx + 11 * g), cy + pump * .4, X(rx + 14 * g), cy - 18 * g + pump, 7.5 * rr, 6.5 * rr);
+        ell(m, X(rx + 14 * g), cy - 25 * g + pump, 8.5 * rr, 8 * rr);
+        paint(m, c);
+        line([[X(rx + 1.5 * g), cy + 1 + pump * .4], [X(rx + 3 * g), cy + 2.2 + pump * .4], [X(rx + 5 * g), cy + 2.2 + pump * .4], [X(rx + 6.5 * g), cy + 1 + pump * .4]], lw, c.shade);
+        const fy = cy - 25 * g + pump;
+        spot(X(rx + 14 * g), fy + 3, 3.6 * rr, 2.6 * rr, c.bellyS);
+        [[-3.5, -2.5], [0, -4], [3.5, -2.5]].forEach(([dx, dy]) => spot(X(rx + 14 * g) + dx * rr, fy + dy * rr, 1.4 * rr, 1.4 * rr, c.bellyS));
+      } else {
+        cap(m, X(rx - 5), cy + 2, X(rx + 4 * g), cy + 17 * g, 8 * rr, 7.5 * rr);
+        ell(m, X(rx + 2 * g), cy + 5, 7.5 * rr, 7.5 * rr);
+        paint(m, c);
+        spot(X(rx + 4 * g), cy + 19 * g, 3 * rr, 2 * rr, c.bellyS);
+      }
+    });
+  } else if (st >= 2 && up) {
+    // Jubelarme enden in denselben Pfoten wie vor dem Bauch (gleiche Form, Größe und Zehenlinien)
+    const pzA = kind === 'bew' || kind === 'hyb' ? 1.3 : 1;
+    [-1, 1].forEach(s => {
+      const hx = cx + s * (rx + 3), hy = cy - 12, m = mk();
+      cap(m, cx + s * (rx - 6), cy, hx, hy + 2, 3.6 * pzA, 3.2 * pzA); ell(m, hx, hy, 3.8 * pzA, 3.1 * pzA); paint(m, c);
+      [-1.1, 1.1].forEach(d => line([[hx + d * pzA, hy - 1.2 * pzA], [hx + d * pzA, hy - 2.4 * pzA]], .35 * pzA, c.deep));
+    });
+  }
+
+  // Körper
+  const body = mk(); ell(body, cx, cy, rx, ry); paint(body, c);
+  spot(cx - rx * .47, top + 12 * sc + 1, 5 * sc + 1, 3 * sc + .5, c.hi);
+  spot(cx - rx * .5, top + 11 * sc + 1, 2.2 * sc + .3, 1.2 * sc + .2, c.hi2);
+  if (kind === 'kra') [[-5, 3], [-4, 2], [-1, 2], [0, 1], [1, 2], [4, 3], [5, 2]].forEach(([x, y]) => line([[cx + x, top + y]], .6, c.shade));
+
+  // Bauch
+  if (kind === 'kra') {
+    spot(cx, cy + ry - 6, 15 * sc, 5.5, c.belly);
+    if (st === 4) [[-6, -9], [2, -9], [-6, -5], [2, -5]].forEach(([x, y]) => spot(cx + x + 1.75, cy + ry + y + 1.25, 2, 1.45, c.bellyS));
+  } else if (kind !== 'aus' && st >= 2) spot(cx, cy + ry - 7, rx * .45, 6, c.belly);
+  const pz = kind === 'bew' || kind === 'hyb' ? 1.3 : 1; // Katze und Tiger: größere Pfoten
+  const bunnyPaws = (dx, py) => [-1, 1].forEach(s => { // kleine Vorderpfoten
+    const px = cx + s * (dx + (pz - 1) * 4), m = mk(); ell(m, px, py, 3.8 * pz, 3.1 * pz); paint(m, c);
+    [-1.1, 1.1].forEach(d => line([[px + d * pz, py + 1.2 * pz], [px + d * pz, py + 2.4 * pz]], .35 * pz, c.deep));
+  });
+  const medal = items.has('medaille') && st >= 3;
+  const pawKind = kind === 'aus' || kind === 'bew' || kind === 'hyb';
+  if (pawKind && !up && !medal) bunnyPaws(8 * sc, cy + ry - 8);
+
+  // Zeichnungen
+  if (kind === 'bew') [[-6, 3, 7], [0, 2, 9], [6, 3, 7]].forEach(([x, y0, y1]) => line([[cx + x, top + y0], [cx + x, top + y1]], .9, c.stripe));
+  if (kind === 'hyb') {
+    line([[cx, top + 3], [cx, top + 12]], 1.1, c.stripe);
+    [-1, 1].forEach(s => line([[cx + s * 12, top + 5], [cx + s * 7, top + 8.5], [cx + s * 12, top + 12]], .95, c.stripe));
+    [-8, 2, 12].forEach(dy => {
+      const ey0 = cy + dy, exx = rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2));
+      [-1, 1].forEach(s => line([[cx + s * (exx - .5), ey0], [cx + s * (exx - 9), ey0 + 1.5]], 1.15, c.stripe));
+    });
+  }
+  if (st === 2 && L.lean === 'hyb') { line([[cx, top + 3], [cx, top + 8]], .8, c.out); [-1, 1].forEach(s => line([[cx + s * 7, top + 4], [cx + s * 5, top + 7]], .7, c.out)); }
+  if (baby) { // Eierschale
+    const m = mk(); ell(m, cx, top + 1, 12.5, 7);
+    for (let i = 0; i < N * N; i++) if (m[i] && ((i / N) | 0) > (top + 2.5) * k) m[i] = 0;
+    [-9, -3, 3, 9].forEach(x => tri(m, [cx + x - 3, top + 2.4], [cx + x + 3, top + 2.4], [cx + x, top + 5.5]));
+    paint(m, { fill: '#FBF6EA', mid: '#F3ECDC', shade: '#E7DEC9', deep: '#D3C7AC', out: '#8C93A8', hi: '#FFFFFF', hi2: '#FFFFFF' });
+    spot(cx + 4, top - 2, 1.6, 1.2, '#9CC0FF');
+  }
+  if (items.has('stirnband')) {
+    const b0 = top + ry * .3, b1 = b0 + 5;
+    for (let y = Math.floor(b0 * k); y < b1 * k; y++) for (let x = 0; x < N; x++) {
+      if (!has(body, x, y) || isEdge(body, x, y)) continue;
+      PX(x, y, y < b0 * k + k ? '#F27A7E' : y >= b1 * k - k ? '#B8323A' : '#E5484D');
+    }
+    const by = (b0 + b1) / 2, ex2 = rx * Math.sqrt(1 - ((by - cy) / ry) ** 2);
+    line([[cx + ex2 - 1, by], [cx + ex2 + 6, by + 6]], 1.5, '#E5484D');
+    line([[cx + ex2 - 1, by], [cx + ex2 + 2.5, by + 8]], 1.5, '#D63E44');
+  }
+
+  // Saisonale Fundstücke (Highres)
+  const WHITEP = { fill: '#F6F3EE', mid: '#EEE9E2', shade: '#E0D9CF', deep: '#CBC2B5', out: '#6B6355', hi: '#FFFFFF', hi2: '#FFFFFF' };
+  if (items.has('muetze')) {
+    const hb = top + ry * .42, half = rx * Math.sqrt(Math.max(0, 1 - ((hb - cy) / ry) ** 2));
+    for (let y = 0; y < hb * k; y++) for (let x = 0; x < N; x++) if (has(body, x, y)) PX(x, y, isEdge(body, x, y) ? '#7A1E22' : (Math.floor(x / (2 * k)) % 2 ? '#E5484D' : '#D23D43'));
+    const bm = mk(); cap(bm, cx - half + 1.5, hb, cx + half - 1.5, hb, 2.6, 2.6); paint(bm, WHITEP);
+    const pm = mk(); ell(pm, cx, top - 3, 5, 5); paint(pm, WHITEP);
+  }
+  if (items.has('sonnenhut')) {
+    const STRAW = { fill: '#F2CF7A', mid: '#EAC56E', shade: '#DDB45A', deep: '#C99D45', out: '#7A5A1E', hi: '#FBE3A6', hi2: '#FFF0C8' };
+    const bm = mk(); ell(bm, cx, top + 4, rx * .98, 3.8); paint(bm, STRAW);
+    const cm = mk(); ell(cm, cx, top - 1.5, rx * .5, 6.5); for (let i = 0; i < N * N; i++) if (cm[i] && ((i / N) | 0) > (top + 3.5) * k) cm[i] = 0; paint(cm, STRAW);
+    line([[cx - rx * .5 + 1, top + 2.2], [cx + rx * .5 - 1, top + 2.2]], 1.2, '#E5484D');
+  }
+  if (items.has('kranz')) {
+    [200, 225, 250, 270, 290, 315, 340].forEach((a, i) => {
+      const r = a * Math.PI / 180, fx = cx + Math.cos(r) * rx * .82, fy = cy + Math.sin(r) * ry * .9 + 1;
+      spot(fx + 2.2, fy + 1.2, 1.8, 1, '#5BAE5B');
+      const col = ['#FF9DB0', '#FFFFFF', '#FFD25E'][i % 3];
+      [0, 72, 144, 216, 288].forEach(p => { const q = p * Math.PI / 180; spot(fx + Math.cos(q) * 1.7, fy + Math.sin(q) * 1.7, 1.45, 1.45, col); });
+      spot(fx, fy, 1, 1, i % 3 === 2 ? '#F08A24' : '#FFC93C');
+    });
+  }
+  if (items.has('blatt')) {
+    const LEAF = { fill: '#D9472B', mid: '#CF3F25', shade: '#B9341D', deep: '#962815', out: '#5A1608', hi: '#F06A4A', hi2: '#F58C70' }; // rotes Ahornblatt, hebt sich auch vom orangen Fell ab
+    const bx = cx + rx * .38, by = top + 6, tx = bx + 11, ty = by - 9, mx = (bx + tx) / 2, my = (by + ty) / 2;
+    const m = mk(); cap(m, bx, by, mx, my, .9, 4.4); cap(m, mx, my, tx, ty, 4.4, .7); paint(m, LEAF);
+    line([[bx, by], [tx - 1, ty + 1]], .35, LEAF.deep);
+    line([[bx, by], [bx - 2, by + 2.5]], .45, '#6B2E05');
+  }
+  if (L.shine) {
+    const sp = (x, y, a) => { line([[x - a, y], [x + a, y]], .45, '#7FC4FF'); line([[x, y - a], [x, y + a]], .45, '#7FC4FF'); spot(x, y, .7, .7, '#E3F3FF'); };
+    sp(cx - rx - 4, top + 8, 2.6); sp(cx + rx + 3, top + 18, 2); sp(cx - rx + 2, top - 2, 1.6);
+  }
+
+  // Gesicht
+  const ex = Math.max(10, rx * .44), ey = cy - (baby ? 1 : 3);
+  const eRx = baby ? 4.2 : 4.6, eRy = baby ? 5 : 5.6;
+  const n = kind === 'moro' ? ey + 6 : ey + 9;
+  if (kind === 'kra' || kind === 'hyb') { spot(cx, ey + 14, 11.5 * sc, 7.5, c.bellyS); spot(cx, ey + 13, 11 * sc, 7, c.belly); }
+  if (kind === 'hyb') [-1, 1].forEach(s => spot(cx + s * rx * .62, ey + 12, 5.5, 3.2, c.belly));
+  const blink = f % 28 === 0;
+  const triF = (a, b, d, col) => { const m = mk(); tri(m, a, b, d); fill(m, col); };
+  // Katzengesicht-Varianten (L.catFace 1–3) zum Vergleich; 0/leer = bisheriges Gesicht
+  const catFace = v => {
+    [-1, 1].forEach(s => {
+      const x = cx + s * ex;
+      if (face === 'happy') { line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK); return; }
+      if (face === 'sleep' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
+      if (v === 1) { // Mandelaugen mit grüner Iris und Lidstrich
+        spot(x, ey, 5.2, 4.8, DK); spot(x, ey + .3, 4.1, 3.8, '#6FB33A'); spot(x, ey + 1.7, 3.1, 1.7, '#A6DB68');
+        spot(x, ey + .2, 1.2, 3.3, DK);
+        spot(x - 1.7, ey - 1.6, 1.3, 1.3, '#FFFFFF'); spot(x + 1.6, ey + 2, .6, .6, '#FFFFFF');
+        line([[x + s * 4.6, ey - 1.4], [x + s * 6.6, ey - 3]], .55, DK);
+      } else if (v === 2) { // große Kulleraugen mit zwei Glanzpunkten
+        spot(x, ey + .5, 5.6, 6.4, DK); spot(x, ey + 3.8, 3.8, 1.8, '#3B4C82');
+        spot(x - 1.8, ey - 1.8, 2.3, 2.3, '#FFFFFF'); spot(x + 2.1, ey + 2.6, 1.1, 1.1, '#FFFFFF');
+      } else { // runde Augen mit bernsteinfarbener Iris
+        spot(x, ey, 4.8, 5.4, DK); spot(x, ey + .4, 3.9, 4.5, '#E9A23B'); spot(x, ey + 1.8, 3, 2, '#F6C66C');
+        spot(x, ey + .4, 2.1, 3.3, DK);
+        spot(x - 1.6, ey - 2, 1.5, 1.5, '#FFFFFF'); spot(x + 1.5, ey + 2.4, .6, .6, '#FFFFFF');
+      }
+      if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
+    });
+    if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
+    if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+      const bx = cx + s * Math.max(ex + 8, rx * .72);
+      spot(bx, ey + 11, v === 2 ? 5 : 4, v === 2 ? 2.6 : 2, '#FF9DB0');
+      if (v === 2) [-2, 0, 2].forEach(d => line([[bx + d - .8, ey + 12], [bx + d + .8, ey + 10]], .35, '#F0708C'));
+    });
+    if (v === 3) { [-1, 1].forEach(s => spot(cx + s * 3.2, n + 2.8, 4.3, 3.3, c.belly)); spot(cx, n + 5.6, 2.6, 1.6, c.belly); }
+    if (v === 2) { spot(cx - 1.1, n - .4, 1.5, 1.3, c.nose); spot(cx + 1.1, n - .4, 1.5, 1.3, c.nose); triF([cx - 2.5, n - .2], [cx + 2.5, n - .2], [cx, n + 2.2], c.nose); }
+    else { triF([cx - 2.8, n - 1.3], [cx + 2.8, n - 1.3], [cx, n + 1.5], c.nose); spot(cx - .9, n - .6, .8, .45, '#FFD0DC'); }
+    const m0 = v === 3 ? n + 3.2 : n + 2.6;
+    if (face === 'happy') { spot(cx, n + 7.4, 4.2, 3.4, '#5A2236'); spot(cx, n + 9.2, 2.6, 1.5, '#FF7FA0'); line([[cx, n + 1.5], [cx, n + 4]], lw, DK); }
+    else if (face === 'sad') line([[cx - 4, n + 6.4], [cx - 2, n + 5], [cx + 2, n + 5], [cx + 4, n + 6.4]], lw, DK);
+    else if (face === 'sleep') spot(cx, n + 5.4, 1.3, 1.1, DK);
+    else if (face === 'restless') line([[cx - 3.5, n + 5.4], [cx + 3.5, n + 5.4]], .6, DK);
+    else {
+      line([[cx, n + 1.5], [cx, m0 + 1.6]], lw, DK);
+      line([[cx - 4.4, m0 + 1.6], [cx - 3, m0 + 3], [cx - 1.4, m0 + 3], [cx, m0 + 1.8], [cx + 1.4, m0 + 3], [cx + 3, m0 + 3], [cx + 4.4, m0 + 1.6]], lw, DK);
+      if (v === 2) triF([cx + 1.4, m0 + 2.9], [cx + 3.2, m0 + 2.9], [cx + 2.3, m0 + 5], '#FFFFFF');
+    }
+    if (v === 1) [-1, 1].forEach(s => { line([[cx + s * rx * .6, n], [cx + s * (rx + 6), n - 2.4]], .4, c.out); line([[cx + s * rx * .6, n + 2.2], [cx + s * (rx + 6), n + 3.4]], .4, c.out); });
+    if (v === 2) [-1, 1].forEach(s => [-1.5, 1.5, 4.5].forEach(dy => line([[cx + s * (rx - 1), n + dy * .6], [cx + s * (rx + 5), n + dy - .5]], .45, c.out)));
+    if (v === 3) [-1, 1].forEach(s => {
+      [[4.2, 1.8], [5.6, 3.2], [3.8, 4]].forEach(([dx, dy]) => spot(cx + s * dx, n + dy, .45, .45, c.deep));
+      [-1, 1.4, 3.8].forEach(dy => line([[cx + s * (rx - 2), n + 1.6 + dy * .5], [cx + s * (rx + 6), n + dy]], .4, c.out));
+      const exx = rx * Math.sqrt(1 - ((ey + 14 - cy) / ry) ** 2);
+      const fm = mk(); tri(fm, [cx + s * (exx - 3), ey + 11], [cx + s * (exx - 3), ey + 17], [cx + s * (exx + 2.6), ey + 15]);
+      paint(fm, c);
+    });
+  };
+  if (kind === 'bew' && L.catFace !== 0) catFace(L.catFace || 2); // Standard: Kulleraugen
+  else {
+  [-1, 1].forEach(s => {
+    const x = cx + s * ex;
+    if (face === 'happy') line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK);
+    else if (face === 'sleep' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
+    else {
+      spot(x, ey, eRx, eRy, DK);
+      spot(x - 1.4, ey - 2.2, 1.9, 1.9, '#FFFFFF');
+      spot(x + 1.7, ey + 3, .75, .75, '#FFFFFF');
+      if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
+    }
+  });
+  if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
+  if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+    const bx = cx + s * Math.max(ex + 8, rx * .72);
+    spot(bx, ey + 11, face === 'happy' ? 5.3 : 4.4, face === 'happy' ? 2.7 : 2.2, '#FF9DB0');
+    spot(bx - 1, ey + 10.5, 1.5, .8, '#FFC4CF');
+  });
+  if (kind === 'kra') { spot(cx, n, 4.6, 3, c.nose); spot(cx - 1.6, n - 1, 1.4, .7, '#7A5A48'); }
+  else if (kind !== 'moro') { spot(cx, n, 2.8, 1.9, c.nose); spot(cx - .8, n - .6, .8, .5, '#FFD0DC'); }
+  const animal = kind !== 'moro';
+  if (face === 'happy') {
+    const my = animal ? n + 7 : n + 3;
+    spot(cx, my, 4.5, 3.6, '#5A2236'); spot(cx, my + 2, 2.8, 1.6, '#FF7FA0');
+    if (animal) line([[cx, n + 2.6], [cx, n + 3.6]], lw, DK);
+  } else if (face === 'sad') line([[cx - 4, n + 6], [cx - 2, n + 4.6], [cx + 2, n + 4.6], [cx + 4, n + 6]], lw, DK);
+  else if (face === 'sleep') spot(cx, animal ? n + 5 : n + 2, 1.3, 1.1, DK);
+  else if (face === 'restless') line([[cx - 3.5, animal ? n + 5 : n + 2], [cx + 3.5, animal ? n + 5 : n + 2]], .6, DK);
+  else if (animal) {
+    line([[cx, n + 2.6], [cx, n + 4.6]], lw, DK);
+    line([[cx - 4.2, n + 4.8], [cx - 3, n + 6], [cx - 1.4, n + 6], [cx, n + 4.8], [cx + 1.4, n + 6], [cx + 3, n + 6], [cx + 4.2, n + 4.8]], lw, DK);
+  } else line([[cx - 3.5, n], [cx - 1.5, n + 1.6], [cx + 1.5, n + 1.6], [cx + 3.5, n]], .6, DK);
+  if (kind === 'bew') [-1, 1].forEach(s => [-2.5, .5, 3.5].forEach((dy, i) => line([[cx + s * rx * .8, n + dy * .5], [cx + s * (rx + 7), n + dy - 1 + i * .4]], .45, c.out)));
+  }
+  if (items.has('medaille') && st >= 3) { // Band um den Hals von Seite zu Seite, Medaille tief auf dem Bauch
+    const y0 = cy + 9, my = cy + ry - 6, e0 = rx * Math.sqrt(1 - ((y0 - cy) / ry) ** 2);
+    [-1, 1].forEach(s => {
+      const pts = [[cx + s * (e0 - .5), y0], [cx + s * e0 * .72, y0 + (my - y0) * .45], [cx + s * e0 * .38, y0 + (my - y0) * .8], [cx + s * 2.2, my - 4]];
+      line(pts, 1.6, '#2F5BFF');
+      line(pts.map(([x, y]) => [x, y - .7]), .5, '#7D97FF');
+    });
+    spot(cx, my, 5.4, 5.4, '#9A6A06'); spot(cx, my, 4.6, 4.6, '#F5B82E'); spot(cx, my, 3, 3, '#E9A912');
+    line([[cx, my - 1.8], [cx, my + 1.8]], .45, '#FFE08A'); line([[cx - 1.8, my], [cx + 1.8, my]], .45, '#FFE08A');
+    spot(cx - 2, my - 2.4, 1.2, .8, '#FFF1B8');
+    if (pawKind && !up) bunnyPaws(7.4, my); // Hase, Katze und Tiger halten die Medaille mit beiden Pfoten
+  }
+  ctx.restore();
+
+  if (face === 'sleep') {
+    const z = (x, y, s) => line([[x, y], [x + 4 * s, y], [x, y + 4 * s], [x + 4 * s, y + 4 * s]], .6 * s + .1, '#7C97FF');
+    const q = f % 12;
+    z(cx + rx * .7, top - 4 - q / 1.5, 1);
+    if (q > 5) z(cx + rx * .7 + 7, top - 12 - (q - 6) / 1.5, .75);
+  }
+  if (face === 'happy') {
+    const star = (x, y, big) => { const a = big ? 3.2 : 2.2; line([[x - a, y], [x + a, y]], .5, '#F5B82E'); line([[x, y - a], [x, y + a]], .5, '#F5B82E'); spot(x, y, .8, .8, '#FFE08A'); };
+    const q = f % 8;
+    if (q < 4) { star(16, 28, q % 2 === 0); star(104, 66, q % 2 === 1); }
+    else { star(102, 22, q % 2 === 0); star(14, 70, q % 2 === 1); }
+  }
+}
+
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const base = { norm: null, items: [], count: 3 };
+const draw = (cv, L, f) => drawPetHi(cv.getContext('2d'), Object.assign({}, base, L), f);
+
+// Weg in 12 Wochen
+const STEPS = [
+  ['Ei', 'Start', '3 Trainings bis zum Schlüpfen', { stage: 0, face: 'content', count: 2 }],
+  ['Baby', 'Woche 1', 'mit Eierschale auf dem Kopf', { stage: 1, face: 'content' }],
+  ['Kind', 'Woche 3', 'die Ohren verraten das Tier', { stage: 2, face: 'content', lean: 'aus' }],
+  ['Teen', 'Woche 6', 'das Tier steht fest', { stage: 3, face: 'content', line: 'aus', lean: 'aus' }],
+  ['Erwachsen', 'Woche 12', 'bereit fürs Album', { stage: 4, face: 'content', line: 'aus', lean: 'aus' }],
+];
+const track = document.getElementById('track');
+STEPS.forEach(([name, when, sub, L]) => {
+  const d = document.createElement('div'); d.className = 'step';
+  const cv = document.createElement('canvas'); cv.width = cv.height = 240; draw(cv, L, 1);
+  d.append(cv); d.insertAdjacentHTML('beforeend', `<span class="when">${when}</span><b>${name}</b><span>${sub}</span>`);
+  track.append(d);
+});
+
+// Vier Tierlinien (stolz, mit Medaille)
+const LN = [['aus', 'Sprinthase', 'Ausdauer: Laufen, Rad'], ['kra', 'Kraftbär', 'Kraft: Krafttraining'], ['bew', 'Flowkatze', 'Beweglichkeit: Yoga'], ['hyb', 'Hybridtiger', 'Ausgewogen: von allem etwas']];
+const lineCanvases = [];
+const lw = document.getElementById('lines');
+LN.forEach(([k, name, sub]) => {
+  const d = document.createElement('div'); d.className = 'line';
+  const cv = document.createElement('canvas'); cv.width = cv.height = 240;
+  d.append(cv); d.insertAdjacentHTML('beforeend', `<b>${name}</b><span>${sub}</span>`);
+  lw.append(d); lineCanvases.push([cv, k]);
+});
+
+// Hero: wechselt alle paar Sekunden die Entwicklungsstufe und das Tier
+const HERO = [
+  ['Ei', { stage: 0, face: 'happy', count: 2 }],
+  ['Baby', { stage: 1, face: 'happy', items: ['stirnband'] }],
+  ['Kind', { stage: 2, face: 'happy', lean: 'bew', items: ['stirnband', 'flasche'] }],
+  ['Sprinthase', { stage: 4, face: 'happy', line: 'aus', lean: 'aus', items: ['sneaker', 'handtuch', 'flasche'] }],
+  ['Kraftbär', { stage: 4, face: 'happy', line: 'kra', lean: 'kra', items: ['stirnband', 'hantel'] }],
+  ['Flowkatze', { stage: 4, face: 'happy', line: 'bew', lean: 'bew', items: ['medaille', 'blatt'] }],
+  ['Hybridtiger', { stage: 4, face: 'happy', line: 'hyb', lean: 'hyb', items: ['medaille', 'sneaker'] }],
+];
+const hero = document.getElementById('hero'), tag = document.getElementById('heroTag');
+let f = 0, idx = 0;
+function tick() {
+  const [name, L] = HERO[idx];
+  tag.textContent = name;
+  draw(hero, L, reduce ? 1 : f);
+  lineCanvases.forEach(([cv, k]) => draw(cv, { stage: 4, face: 'happy', line: k, lean: k, items: ['medaille'] }, reduce ? 1 : f));
+  f++;
+  if (!reduce && f % 18 === 0) idx = (idx + 1) % HERO.length;
+}
+tick();
+setInterval(tick, 170);
+})();
+</script>
