@@ -313,6 +313,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .st b { font-size: 12px; } .st span { color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
 .items { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.shoe-dot { display: inline-block; width: 14px; height: 10px; border-radius: 6px 6px 4px 4px; margin-right: 6px; vertical-align: -1px; }
+#shoePick button:disabled { opacity: .55; cursor: default; }
 .swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
 .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .swatches .lock { background: var(--heat0); cursor: default; display: grid; place-items: center; color: var(--muted); font-size: 13px; font-weight: 700; }
@@ -468,7 +470,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <span class="q-state" id="goalsState">0 / 4</span>
       </div>
       <div class="goals" id="goals"></div>
-      <p class="fine">Zählt von Tag 1 bis 7 der laufenden Woche. Schlaf zählt, wenn du „gut“ einträgst. Ein erreichtes Trinkziel schaltet eine neue Flaschenfarbe frei.</p>
+      <p class="fine">Zählt von Tag 1 bis 7 der laufenden Woche. Schlaf zählt, wenn du „gut“ einträgst. Ein erreichtes Trinkziel schaltet eine neue Flaschenfarbe frei, das Schrittziel neue Turnschuhe.</p>
     </section>
 
     <section class="card letterc" aria-label="Wochenbrief">
@@ -543,7 +545,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         <p class="fine" id="linesNote" style="margin-top:8px">Welches Tier aus Moro wird, entscheidet dein Training bis zur Teen-Stufe. Danach bleibt die Linie fest.</p>
       </div>
       <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
-      <div id="bottleBox" hidden><p class="eyebrow" style="margin-bottom:8px">Flaschenfarben · <span id="bottleCount"></span> · eine neue pro Wochentrinkziel</p><div class="swatches" id="bottleColors" role="group" aria-label="Farbe der Trinkflasche"></div></div>
+      <div id="bottleBox" hidden><p class="eyebrow" style="margin-bottom:8px">Trinkflasche · <span id="bottleCount"></span> Farben · eine neue pro Wochentrinkziel</p><div class="pickseg" id="cupPick" role="group" aria-label="Form der Trinkflasche" style="margin-bottom:8px"><button type="button" data-cup="flasche">Flasche</button><button type="button" data-cup="becher">Becher mit Strohhalm</button></div><div class="swatches" id="bottleColors" role="group" aria-label="Farbe der Trinkflasche"></div></div>
+      <div id="shoeBox" hidden><p class="eyebrow" style="margin-bottom:8px">Turnschuhe · neue Modelle über das Wochenschrittziel</p><div class="pickseg" id="shoePick" role="group" aria-label="Turnschuh-Modell"></div></div>
       <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
     </section>
 
@@ -717,8 +720,14 @@ const BOTTLES = {
   pink: { name: 'Pink', c: '#EC4899' }, tuerkis: { name: 'Türkis', c: '#22B8CF' }, schwarz: { name: 'Schwarz', c: '#3A4256' },
 };
 const bottleKey = s => (s.bottle && BOTTLES[s.bottle]) ? s.bottle : 'blau';
+// Turnschuh-Modelle: das Wochenschrittziel bringt zuerst die Turnschuhe (Klassiker), dann das zweifarbige Modell
+const SHOES = {
+  klassik: { name: 'Klassiker', up: '#E5484D' },
+  zwei: { name: 'Zweifarbig', up: '#22B8CF', toe: '#F28C28' },
+};
+const shoeKey = s => (s.shoe && SHOES[s.shoe] && (s.shoes || []).includes(s.shoe)) ? s.shoe : 'klassik';
 const stageName = (s, line) => s >= 3 && line ? LINES[line][s === 3 ? 'teen' : 'adult'] : STAGES[s].name;
-const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Sneaker', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
+const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Turnschuhe', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
 const BASE_ITEMS = Object.keys(ITEMS);
 // Saisonale Fundstücke: gibt es nur in ihrer Jahreszeit
 const SEASON_ITEMS = { muetze: ['Bommelmütze', 'winter'], kranz: ['Blumenkranz', 'fruehling'], sonnenhut: ['Sonnenhut', 'sommer'], blatt: ['Herbstblatt', 'herbst'] };
@@ -961,7 +970,10 @@ function drawPet(ctx, L, f) {
     if (items.has('flasche')) {
       const x = towel ? tx + Math.floor(TW / 2) - 1 : 20 - rx - 7;
       const bc = BOTTLES[L.bottle || 'blau'].c;
-      R(x, base - 5, 3, 5, bc); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, mix(bc, '#FFFFFF', .55));
+      if (L.cup === 'becher') { // Becher mit Knick-Strohhalm
+        R(x, base - 3, 3, 3, bc); R(x - 1, base - 5, 5, 2, bc); R(x - 1, base - 6, 5, 1, '#E8ECF5'); P(x - 1, base - 5, mix(bc, '#FFFFFF', .55));
+        P(x + 1, base - 7, WHITE); P(x + 1, base - 8, bc); P(x + 2, base - 9, WHITE);
+      } else { R(x, base - 5, 3, 5, bc); R(x + 1, base - 6, 1, 1, '#E8ECF5'); P(x, base - 4, mix(bc, '#FFFFFF', .55)); }
     }
   }
 
@@ -1041,7 +1053,12 @@ function drawPet(ctx, L, f) {
   // Füße
   [cx - 1 - fw, cx + 2].forEach(x0 => {
     const y0 = cy + ry + 1;
-    if (items.has('sneaker') && st >= 2) { R(x0, y0, fw, fh, RED); P(x0 + (x0 < cx ? 0 : fw - 1), y0 + fh - 1, WHITE); return; }
+    if (items.has('sneaker') && st >= 2) {
+      const S = SHOES[L.shoe] || SHOES.klassik, front = x0 < cx ? 0 : fw - 1;
+      R(x0, y0, fw, fh, S.up);
+      if (S.toe) R(x0 + front, y0, 1, fh, S.toe); else P(x0 + front, y0 + fh - 1, WHITE);
+      return;
+    }
     R(x0, y0, fw, fh, c.out);
     if (fw >= 3 && fh >= 2) R(x0 + 1, y0, fw - 2, fh - 1, c.fill);
   });
@@ -1267,11 +1284,24 @@ function drawPetHi(ctx, L, f) {
     }
     if (items.has('flasche')) {
       const bx = towel ? tx + tw / 2 : 60 - rx - 10;
-      const m = mk(); cap(m, bx, base - 4, bx, base - 14, 4, 4);
       const bc = BOTTLES[L.bottle || 'blau'].c, K = '#000000', W = '#FFFFFF';
-      paint(m, { fill: bc, mid: mix(bc, K, .07), shade: mix(bc, K, .15), deep: mix(bc, K, .35), out: mix(bc, K, .6), hi: mix(bc, W, .38), hi2: mix(bc, W, .58) });
-      spot(bx, base - 9, 3.2, 1.8, mix(bc, W, .55));
-      const cm = mk(); ell(cm, bx, base - 19.5, 2.6, 1.9); paint(cm, { fill: '#E8ECF5', mid: '#E0E5F0', shade: '#CFD6E4', deep: '#B9C2D4', out: '#5B6478', hi: '#FFFFFF', hi2: '#FFFFFF' });
+      const bp = b => ({ fill: b, mid: mix(b, K, .07), shade: mix(b, K, .15), deep: mix(b, K, .35), out: mix(b, K, .6), hi: mix(b, W, .38), hi2: mix(b, W, .58) });
+      const lidPal = { fill: '#E8ECF5', mid: '#E0E5F0', shade: '#CFD6E4', deep: '#B9C2D4', out: '#5B6478', hi: '#FFFFFF', hi2: '#FFFFFF' };
+      if (L.cup === 'becher') { // Becher: unten schmal, oben breit, heller Griffring, flacher Deckel, Knick-Strohhalm
+        const m = mk(), a = [bx - 3.3, base - .4], b2 = [bx + 3.3, base - .4], c3 = [bx + 4.7, base - 17.6], d = [bx - 4.7, base - 17.6];
+        tri(m, a, b2, c3); tri(m, a, c3, d); paint(m, bp(bc));
+        const band = mk(); tri(band, [bx - 4.2, base - 11.5], [bx + 4.2, base - 11.5], [bx + 3.9, base - 7.5]); tri(band, [bx - 4.2, base - 11.5], [bx + 3.9, base - 7.5], [bx - 3.9, base - 7.5]);
+        paint(band, bp(mix(bc, W, .7)));
+        spot(bx - 2.4, base - 14.5, .8, 1.6, mix(bc, W, .5));
+        const sx = bx + 1, sy = base - 19, pts = [[sx, sy], [sx, sy - 7.5], [sx + .8, sy - 8.9], [sx + 3.4, sy - 10.1]];
+        line(pts, 1.05, '#5B6478'); line(pts, .62, W);
+        [[sx, sy - 2], [sx, sy - 4.4], [sx, sy - 6.8], [sx + 1.9, sy - 9.5]].forEach(([px, py]) => spot(px, py, .62, .62, bc));
+        const cm = mk(); ell(cm, bx, base - 18.4, 5.4, 1.7); paint(cm, lidPal);
+      } else {
+        const m = mk(); cap(m, bx, base - 4, bx, base - 14, 4, 4); paint(m, bp(bc));
+        spot(bx, base - 9, 3.2, 1.8, mix(bc, W, .55));
+        const cm = mk(); ell(cm, bx, base - 19.5, 2.6, 1.9); paint(cm, lidPal);
+      }
     }
   }
 
@@ -1279,10 +1309,16 @@ function drawPetHi(ctx, L, f) {
 
   // Füße
   const sneak = items.has('sneaker') && st >= 2;
-  const fp = sneak ? { fill: '#E5484D', mid: '#DC3F44', shade: '#C9373C', deep: '#A82B30', out: '#5A1416', hi: '#F27A7E', hi2: '#F79A9D' } : c;
+  const S = SHOES[L.shoe] || SHOES.klassik, K0 = '#000000', W0 = '#FFFFFF';
+  const shoePal = b => ({ fill: b, mid: mix(b, K0, .06), shade: mix(b, K0, .15), deep: mix(b, K0, .32), out: mix(b, K0, .62), hi: mix(b, W0, .35), hi2: mix(b, W0, .55) });
+  const fp = sneak ? shoePal(S.up) : c;
   [-1, 1].forEach(s => {
-    const fx = cx + s * rx * .44, m = mk(); ell(m, fx, footY, rx * .31, footRy); paint(m, fp);
-    if (sneak) { line([[fx - rx * .22, footY + footRy - 1.8], [fx + rx * .22, footY + footRy - 1.8]], .7, '#FFFFFF'); spot(fx, footY - 2, 1, 1, '#FFFFFF'); }
+    const fx = cx + s * rx * .44, w = rx * .31, m = mk(); ell(m, fx, footY, w, footRy); paint(m, fp);
+    if (!sneak) return;
+    if (S.toe) { const tm = mk(); ell(tm, fx + s * w * .45, footY + .8, w * .55, footRy * .78); paint(tm, shoePal(S.toe)); }
+    line([[fx - rx * .22, footY + footRy - 1.8], [fx + rx * .22, footY + footRy - 1.8]], .75, W0);
+    if (S.toe) spot(fx - s * 1, footY - 2.4, .9, .9, W0);
+    else { spot(fx - 1.2, footY - 2.4, .9, .9, W0); spot(fx + 1.2, footY - 2.4, .9, .9, W0); }
   });
 
   // Schwänze (hinter dem Körper)
@@ -1619,7 +1655,7 @@ document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener
 }));
 
 function look(stage, overrides = {}) {
-  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0, bottle: bottleKey(state) }, overrides);
+  return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0, bottle: bottleKey(state), cup: state.cup === 'becher' ? 'becher' : 'flasche', shoe: shoeKey(state) }, overrides);
 }
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
@@ -1656,6 +1692,21 @@ function unlockBottle() {
   toast(`Neue Flaschenfarbe: ${BOTTLES[k].name}!${hasBottle ? '' : ' Sie erscheint, sobald du die Trinkflasche findest.'}`);
   confetti(60);
 }
+// Belohnung fürs Wochenschrittziel: erst die Turnschuhe (Klassiker), danach das zweifarbige Modell
+function unlockShoe() {
+  if (!state.items.some(i => i.id === 'sneaker')) {
+    state.items.push({ id: 'sneaker', day: state.day }); delete state.hidden.sneaker;
+    toast(`Belohnung: Turnschuhe für ${state.name}!${D.stage < 2 ? ' Sie passen ab der Kind-Stufe.' : ''}`);
+    confetti(60); return;
+  }
+  const have = state.shoes || [];
+  const free = Object.keys(SHOES).filter(k => k !== 'klassik' && !have.includes(k));
+  if (!free.length) return;
+  const k = free[0];
+  state.shoes = [...have, k]; state.shoe = k; delete state.hidden.sneaker;
+  toast(`Neue Turnschuhe: ${SHOES[k].name}!`);
+  confetti(60);
+}
 function commit() {
   D = derive(state);
   let askLine = false;
@@ -1683,6 +1734,7 @@ function commit() {
     if (!g.done || gd.includes(g.id)) return;
     gd.push(g.id); toast(`Wochenziel geschafft: ${g.label}`);
     if (g.id === 'water') unlockBottle();
+    if (g.id === 'steps') unlockShoe();
   });
   if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); }
   // Persönliche Rekorde feiern (nicht beim allerersten Wert)
@@ -1848,6 +1900,13 @@ function render() {
   $('bottleColors').innerHTML = Object.entries(BOTTLES).map(([k, b]) => haveB.includes(k)
     ? `<button type="button" data-bottle="${k}" style="background:${b.c}" aria-pressed="${k === curB}" aria-label="${b.name}" title="${b.name}"></button>`
     : `<button type="button" class="lock" disabled aria-label="Noch nicht freigeschaltet" title="Noch nicht freigeschaltet">?</button>`).join('');
+  document.querySelectorAll('#cupPick button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cup === (state.cup === 'becher' ? 'becher' : 'flasche'))));
+  // Turnschuh-Modelle: Klassiker gehört zu den Turnschuhen, weitere kommen übers Schrittziel
+  const haveS = ['klassik', ...(state.shoes || [])], curS = shoeKey(state);
+  $('shoeBox').hidden = !owned.sneaker;
+  $('shoePick').innerHTML = Object.entries(SHOES).map(([k, sh]) => haveS.includes(k)
+    ? `<button type="button" data-shoe="${k}" aria-pressed="${k === curS}"><i class="shoe-dot" style="background:${sh.up}${sh.toe ? `;box-shadow:inset -5px 0 0 ${sh.toe}` : ''}"></i>${sh.name}</button>`
+    : `<button type="button" disabled title="Kommt mit einem erreichten Wochenschrittziel">? Noch offen</button>`).join('');
 
   // Frühere Begleiter
   $('archiveBox').hidden = !state.archive.length;
@@ -2019,6 +2078,14 @@ $('items').addEventListener('click', e => {
 $('bottleColors').addEventListener('click', e => {
   const b = e.target.closest('button[data-bottle]'); if (!b) return;
   state.bottle = b.dataset.bottle; save(); render(); tick();
+});
+$('cupPick').addEventListener('click', e => {
+  const b = e.target.closest('button[data-cup]'); if (!b) return;
+  state.cup = b.dataset.cup; save(); render(); tick();
+});
+$('shoePick').addEventListener('click', e => {
+  const b = e.target.closest('button[data-shoe]'); if (!b) return;
+  state.shoe = b.dataset.shoe; save(); render(); tick();
 });
 // Wasser, Schlaf, Schritte
 const setHealth = (patch) => { state.health[state.day] = Object.assign({}, hp(state, state.day), patch); commit(); tick(); };
