@@ -1913,7 +1913,10 @@ function renderSettings() {
   $('itemsCount').textContent = owned.length ? `· ${owned.length} gefunden` : '';
   $('itemToggles').innerHTML = owned.length ? owned.map(i => `<li><span class="t-name"><b>${ITEMS[i.id]}</b><span>gefunden ${dayLabel(i.day)}</span></span><label class="switch"><input type="checkbox" data-item="${i.id}" ${state.hidden[i.id] ? '' : 'checked'} aria-label="${ITEMS[i.id]} anzeigen"> ${state.hidden[i.id] ? 'aus' : 'an'}</label></li>`).join('')
     : '<li class="fine">Noch keine Fundstücke. Sie tauchen nach dem Training zufällig auf.</li>';
-  $('backupInfo').textContent = (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
+  const mb = new Blob([backupText()]).size / (1024 * 1024);
+  const size = mb < .01 ? 'unter 0,01 MB' : `${mb.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MB`;
+  $('backupInfo').textContent = `Backup-Größe: ${size}. `
+    + (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
     + 'Deine Daten liegen nur auf diesem Gerät. Ein Backup schützt sie, wenn du den Browser-Speicher leerst oder das Handy wechselst.';
   $('bkDownload').hidden = !REAL_TIME; // Downloads sind im Artefakt-Fenster gesperrt
 }
