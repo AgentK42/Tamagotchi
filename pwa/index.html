@@ -244,7 +244,7 @@ button.item.off i { background: var(--heat0); }
 /* Sprechblase über der Bühne, Spitze zeigt nach unten zur Figur */
 .mood { display: flex; gap: 8px; align-items: flex-end; margin-bottom: -4px; }
 .mood-pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg); white-space: nowrap; }
-.mood-pill.proud { color: var(--good); } .mood-pill.rest { color: var(--accent); } .mood-pill.restless { color: var(--warn); } .mood-pill.tired { color: var(--bad); } .mood-pill.pause, .mood-pill.new { color: var(--muted); } .mood-pill.ready { color: var(--ink); }
+.mood-pill.proud { color: var(--good); } .mood-pill.rest { color: var(--accent); } .mood-pill.restless { color: var(--warn); } .mood-pill.tired { color: var(--bad); } .mood-pill.pause, .mood-pill.new { color: var(--muted); } .mood-pill.ready { color: var(--ink); } .mood-pill.thirsty { color: #5BB8FF; }
 .mood-text { position: relative; flex: 1 1 auto; min-width: 0; font-size: 13px; background: var(--stage); padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; }
 .mood-text::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: var(--stage); }
 
@@ -826,6 +826,7 @@ const dateOf = (s, day) => { const d = new Date((s.start || new Date().toISOStri
 const seasonOf = d => { const m = d.getMonth() + 1; return m === 12 || m <= 2 ? 'winter' : m <= 5 ? 'fruehling' : m <= 8 ? 'sommer' : 'herbst'; };
 const seasonItem = season => Object.keys(SEASON_ITEMS).find(k => SEASON_ITEMS[k][1] === season);
 // Gesundheit
+const THIRST_HOUR = 15, THIRST_GLASSES = 4; // durstig ab 15 Uhr bei unter 1 l (4 Gläser à 0,25 l)
 const WATER_GOAL = 6, WATER_MAX = 8; // 8 Gläser à 0,25 l = 2 l
 const stepXp = steps => Math.min(30, Math.floor((steps || 0) / 1000) * 4);
 const hp = (s, d) => (s.health && s.health[d]) || {};
@@ -964,6 +965,11 @@ function derive(s) {
   else if (gap === 3) mood = { key: 'restless', label: 'Rastlos', face: 'restless', text: `${n} tippelt herum und wartet auf die nächste Einheit.` };
   else mood = { key: 'tired', label: 'Schlapp', face: 'sad', text: `${n} ist schlapp, aber nicht verloren. Eine kurze Einheit reicht, um es aufzuwecken.` };
   const today = hp(s, s.day);
+  // Durstig: ab 15 Uhr, wenn heute weniger als 1 l (4 Gläser) getrunken wurde. Stolz, Pause und „Wartet“ haben Vorrang.
+  if (!s.paused && gap !== null && gap !== 0 && new Date().getHours() >= THIRST_HOUR && (today.water || 0) < THIRST_GLASSES) {
+    const l = String((today.water || 0) * .25).replace('.', ',');
+    mood = { key: 'thirsty', label: 'Durstig', face: 'thirsty', text: `${n} hat Durst. Bisher erst ${l} l getrunken, ein Glas Wasser würde helfen.` };
+  }
   if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
   const shine = (today.water || 0) >= WATER_GOAL;
   const w0 = curWeek * 7, wr = ws.filter(w => w.day >= w0 && w.day < w0 + 7);
@@ -1230,6 +1236,7 @@ function drawPet(ctx, L, f) {
   else if (kind !== 'moro') P(cx, my - 1, c.nose);
   if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
   else if (face === 'sad') { P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); }
+  else if (face === 'thirsty') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx + (f % 4 < 2 ? 0 : 1), my + 2, '#FF7FA0'); }
   else if (face === 'sleep') P(cx, my, DARK);
   else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
   else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
@@ -1246,6 +1253,7 @@ function drawPet(ctx, L, f) {
     R(cx - 1, y, 3, 3, GOLD); P(cx, y + 1, '#FFE08A'); P(cx - 1, y + 2, '#B9820C'); P(cx + 1, y + 2, '#B9820C');
   }
   if (face === 'sad') { P(eyes[0], ey + eh, '#7FC4FF'); P(eyes[0], ey + eh + 1, '#7FC4FF'); }
+  if (face === 'thirsty') { P(eyes[1] + 4, ey - 1, '#7FC4FF'); P(eyes[1] + 4, ey, '#7FC4FF'); P(eyes[1] + 4, ey + 1, '#BFE3FF'); }
   if (face === 'sleep') {
     const zz = (x, y) => [[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]].forEach(([a, b]) => P(x + a, y + b, '#7C97FF'));
     const o = f % 12;
@@ -1619,6 +1627,12 @@ function drawPetHi(ctx, L, f) {
     else { triF([cx - 2.8, n - 1.3], [cx + 2.8, n - 1.3], [cx, n + 1.5], c.nose); spot(cx - .9, n - .6, .8, .45, '#FFD0DC'); }
     const m0 = v === 3 ? n + 3.2 : n + 2.6;
     if (face === 'happy') { spot(cx, n + 7.4, 4.2, 3.4, '#5A2236'); spot(cx, n + 9.2, 2.6, 1.5, '#FF7FA0'); line([[cx, n + 1.5], [cx, n + 4]], lw, DK); }
+    else if (face === 'thirsty') {
+      const wag = f % 4 < 2 ? 0 : .9;
+      line([[cx, n + 1.5], [cx, n + 3]], lw, DK);
+      spot(cx, n + 6.2, 3.6, 3, '#5A2236'); spot(cx + wag, n + 9.2, 2, 2.8, '#FF7FA0'); line([[cx + wag, n + 8.2], [cx + wag, n + 10.8]], .3, '#E0587C');
+      [[cx + ex + 7, ey - 7, 1.5, 2.4], [cx + ex + 7, ey - 6.4, .6, 1]].forEach(([x, y, a, b], i) => spot(x, y, a, b, i ? '#EAF6FF' : '#7FC4FF'));
+    }
     else if (face === 'sad') line([[cx - 4, n + 6.4], [cx - 2, n + 5], [cx + 2, n + 5], [cx + 4, n + 6.4]], lw, DK);
     else if (face === 'sleep') spot(cx, n + 5.4, 1.3, 1.1, DK);
     else if (face === 'restless') line([[cx - 3.5, n + 5.4], [cx + 3.5, n + 5.4]], .6, DK);
@@ -1663,6 +1677,11 @@ function drawPetHi(ctx, L, f) {
     const my = animal ? n + 7 : n + 3;
     spot(cx, my, 4.5, 3.6, '#5A2236'); spot(cx, my + 2, 2.8, 1.6, '#FF7FA0');
     if (animal) line([[cx, n + 2.6], [cx, n + 3.6]], lw, DK);
+  } else if (face === 'thirsty') {
+    const ty = animal ? n + 5.2 : n + 2.2, wag = f % 4 < 2 ? 0 : .9;
+    if (animal) line([[cx, n + 2.6], [cx, n + 3.8]], lw, DK);
+    spot(cx, ty + 1.4, 3.6, 3, '#5A2236'); spot(cx + wag, ty + 4.4, 2, 2.8, '#FF7FA0'); line([[cx + wag, ty + 3.4], [cx + wag, ty + 6]], .3, '#E0587C');
+    [[cx + ex + 7, ey - 7, 1.5, 2.4], [cx + ex + 7, ey - 6.4, .6, 1]].forEach(([x, y, a, b], i) => spot(x, y, a, b, i ? '#EAF6FF' : '#7FC4FF'));
   } else if (face === 'sad') line([[cx - 4, n + 6], [cx - 2, n + 4.6], [cx + 2, n + 4.6], [cx + 4, n + 6]], lw, DK);
   else if (face === 'sleep') spot(cx, animal ? n + 5 : n + 2, 1.3, 1.1, DK);
   else if (face === 'restless') line([[cx - 3.5, animal ? n + 5 : n + 2], [cx + 3.5, animal ? n + 5 : n + 2]], .6, DK);
@@ -2475,6 +2494,10 @@ function boot(data) {
     document.addEventListener('visibilitychange', () => { if (!document.hidden && syncDay()) commit(); });
     setInterval(() => { if (syncDay()) commit(); }, 60000);
   }
+  // Stimmung neu berechnen: beim Zurückkehren in die App (die PWA wird im Hintergrund beendet) und alle 5 Minuten bei geöffneter App (z. B. 15 Uhr erreicht)
+  const refreshMood = () => { D = derive(state); render(); };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshMood(); });
+  setInterval(() => { if (!document.hidden) refreshMood(); }, 300000);
 }
 if (window.claude && window.claude.hot && typeof window.claude.hot.snapshot === 'function') window.claude.hot.snapshot(() => ({ state }));
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
