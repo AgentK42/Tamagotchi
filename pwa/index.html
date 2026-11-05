@@ -314,7 +314,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .items { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .shoe-dot { display: inline-block; width: 14px; height: 10px; border-radius: 6px 6px 4px 4px; margin-right: 6px; vertical-align: -1px; }
-#shoePick button:disabled { opacity: .55; cursor: default; }
+#shoePick button:disabled, #scenePick button:disabled { opacity: .55; cursor: default; }
 .swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
 .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .swatches .lock { background: var(--heat0); cursor: default; display: grid; place-items: center; color: var(--muted); font-size: 13px; font-weight: 700; }
@@ -547,6 +547,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
       <div><p class="eyebrow" style="margin-bottom:8px">Fundstücke · antippen zum An- und Ablegen</p><div class="items" id="items"></div></div>
       <div id="bottleBox" hidden><p class="eyebrow" style="margin-bottom:8px">Trinkflasche · <span id="bottleCount"></span> Farben · eine neue pro Wochentrinkziel</p><div class="pickseg" id="cupPick" role="group" aria-label="Form der Trinkflasche" style="margin-bottom:8px"><button type="button" data-cup="flasche">Flasche</button><button type="button" data-cup="becher">Becher mit Strohhalm</button></div><div class="swatches" id="bottleColors" role="group" aria-label="Farbe der Trinkflasche"></div></div>
       <div id="shoeBox" hidden><p class="eyebrow" style="margin-bottom:8px">Turnschuhe · neue Modelle über das Wochenschrittziel</p><div class="pickseg" id="shoePick" role="group" aria-label="Turnschuh-Modell"></div></div>
+      <div><p class="eyebrow" style="margin-bottom:8px">Bühne · <span id="sceneCount"></span> · eine neue pro Woche mit allen Wochenzielen</p><div class="pickseg" id="scenePick" role="group" aria-label="Bühnen-Hintergrund"></div></div>
       <div id="archiveBox" hidden><p class="eyebrow" style="margin-bottom:8px">Frühere Begleiter</p><div class="stages" id="archive"></div></div>
     </section>
 
@@ -726,6 +727,94 @@ const SHOES = {
   zwei: { name: 'Zweifarbig', up: '#22B8CF', toe: '#F28C28' },
 };
 const shoeKey = s => (s.shoe && SHOES[s.shoe] && (s.shoes || []).includes(s.shoe)) ? s.shoe : 'klassik';
+// Bühnen-Hintergründe: jede Woche mit allen Wochenzielen schaltet eine zufällige Szene frei
+const SCENES = { sterne: 'Sternenhimmel', morgen: 'Morgenrot', weltall: 'Weltall', regenbogen: 'Regenbogen', fruehling: 'Frühling', sommer: 'Sommer', herbst: 'Herbst', winter: 'Winter' };
+const sceneKey = s => (s.scene && SCENES[s.scene] && (s.scenes || []).includes(s.scene)) ? s.scene : null;
+(() => {
+  // Szenen als SVG (400 × 300). Boden immer unten 22 % wie die Laufbahn; nur Himmel, Licht und ferner Horizont, nichts mit echter Größe.
+  const svg = body => 'url("data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges">${body}</svg>`) + '")';
+  const rng = seed => { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; };
+  const sky = (...stops) => `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient></defs><rect width="400" height="300" fill="url(#s)"/>`;
+  const stars = (n, seed, maxY = 190) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) { const x = Math.round(r() * 400), y = Math.round(r() * maxY), z = r() < .15 ? 3 : 2; out += `<rect x="${x}" y="${y}" width="${z}" height="${z}" fill="#FFFFFF" opacity="${(.45 + r() * .55).toFixed(2)}"/>`; } return out; };
+  const LEAF_COLS = [['#E5484D', '#8E2326'], ['#F28C28', '#9A4E0E'], ['#F5B82E', '#9A6A06'], ['#C2552B', '#6E2A12']];
+  const leaves = (n, seed, y0, y1, s0, s1) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(y0 + r() * (y1 - y0)), [f, o] = LEAF_COLS[Math.floor(r() * 4)], rot = Math.round(r() * 360), sc = (s0 + r() * (s1 - s0)).toFixed(2);
+      out += `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})"><path d="M-9 0 C-6 -6 4 -7 9 0 C4 7 -6 6 -9 0Z" fill="${f}" stroke="${o}" stroke-width="1.3" stroke-linejoin="round"/><path d="M-8 0 L8 0 M-2 0 L1 -3.5 M-2 0 L1 3.5 M3 0 L5.5 -2.4 M3 0 L5.5 2.4" stroke="${o}" stroke-width=".9" fill="none" opacity=".8"/><path d="M-9 0 L-13 1.5" stroke="${o}" stroke-width="1.4"/></g>`;
+    } return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const pixLeaves = (n, seed, y0, y1) => { const r = rng(seed), P = 5; let out = '';
+    const FORMS = [[[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]], [[1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2]], [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2]]];
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 78) * P, y = Math.round((y0 + r() * (y1 - y0)) / P) * P, [f, o] = LEAF_COLS[Math.floor(r() * 4)], form = FORMS[Math.floor(r() * 3)];
+      form.forEach(([a, b], j) => { out += `<rect x="${x + a * P}" y="${y + b * P}" width="${P}" height="${P}" fill="${j === form.length - 1 ? o : f}"/>`; });
+    } return out; };
+  const specks = (n, seed, cols, petal) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(r() * 280), col = cols[Math.floor(r() * cols.length)], rot = Math.round(r() * 90);
+      if (petal) out += `<rect x="${x}" y="${y}" width="8" height="5" rx="2.5" fill="${col}" transform="rotate(${rot} ${x} ${y})"/>`;
+      else { const z = r() < .35 ? 5 : 3; out += `<rect x="${x}" y="${y}" width="${z}" height="${z}" fill="${col}" opacity="${(.75 + r() * .25).toFixed(2)}"/>`; }
+    } return out; };
+  const PETAL = 'M0 -1.2 C-3.4 -3 -3.6 -7.4 -1.4 -8.6 L0 -7.4 L1.4 -8.6 C3.6 -7.4 3.4 -3 0 -1.2Z';
+  const blossoms = (n, seed, y0, y1, s0, s1) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(y0 + r() * (y1 - y0)), rot = Math.round(r() * 72), sc = (s0 + r() * (s1 - s0)).toFixed(2), f = r() < .5 ? '#F7B6CF' : '#FBC9DC';
+      out += `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})">`
+        + [0, 72, 144, 216, 288].map(a => `<path d="${PETAL}" transform="rotate(${a})" fill="${f}" stroke="#D9608E" stroke-width=".8" stroke-linejoin="round"/>`).join('')
+        + [0, 72, 144, 216, 288].map(a => `<path d="M0 0 L0 -3.4" transform="rotate(${a + 36})" stroke="#E8749F" stroke-width=".6"/>`).join('')
+        + '<circle r="1.7" fill="#F5C542" stroke="#C98F1E" stroke-width=".5"/></g>';
+    } return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const loosePetals = (n, seed) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) out += `<path d="${PETAL}" transform="translate(${Math.round(r() * 400)} ${Math.round(r() * 280)}) rotate(${Math.round(r() * 360)}) scale(1.1)" fill="#F7B6CF" stroke="#D9608E" stroke-width=".8"/>`;
+    return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const SPRING = sky([0, '#A9D8F5'], [1, '#FCE4F0'])
+    + '<g fill="#FFFFFF" opacity=".8"><rect x="40" y="46" width="48" height="8"/><rect x="52" y="40" width="22" height="6"/><rect x="300" y="70" width="52" height="8"/><rect x="314" y="64" width="24" height="6"/></g>'
+    + '<path d="M0 226 Q100 210 200 220 T400 214 V240 H0Z" fill="#A6DB8E"/><rect y="234" width="400" height="66" fill="#8ACB72"/>'
+    + '<g fill="#FFFFFF"><rect x="40" y="250" width="3" height="3"/><rect x="150" y="288" width="3" height="3"/><rect x="270" y="246" width="3" height="3"/><rect x="360" y="278" width="3" height="3"/></g>'
+    + '<g fill="#F5C542"><rect x="41" y="251" width="1" height="1"/><rect x="151" y="289" width="1" height="1"/><rect x="271" y="247" width="1" height="1"/><rect x="361" y="279" width="1" height="1"/></g>'
+    + '<g fill="#F28FB8"><rect x="100" y="262" width="3" height="3"/><rect x="220" y="276" width="3" height="3"/><rect x="320" y="258" width="3" height="3"/></g>';
+  const AUTUMN = sky([0, '#6E8FB8'], [.55, '#E8A86A'], [1, '#F6D29A']);
+  const HI = {
+    sterne: sky([0, '#090D26'], [1, '#26306A']) + stars(70, 7)
+      + '<circle cx="320" cy="62" r="22" fill="#F4EBC2"/><circle cx="330" cy="54" r="20" fill="#121840"/><path d="M0 230 Q100 196 200 214 T400 204 V240 H0Z" fill="#1C2550"/><rect y="234" width="400" height="66" fill="#161E44"/>'
+      + '<g fill="#F5C542" opacity=".9"><rect x="70" y="200" width="3" height="3"/><rect x="250" y="190" width="3" height="3"/><rect x="340" y="214" width="3" height="3"/></g><rect y="234" width="400" height="2" fill="#2C3770"/>',
+    morgen: sky([0, '#2A2C68'], [.45, '#B85A8C'], [.78, '#F59A72'], [1, '#FFD08A']) + stars(14, 3, 70)
+      + '<circle cx="318" cy="234" r="62" fill="#FFE38A" opacity=".25"/><circle cx="318" cy="234" r="46" fill="#FFE07A"/>'
+      + '<g fill="#F59A72"><rect x="270" y="212" width="96" height="3"/><rect x="270" y="220" width="96" height="4"/><rect x="270" y="228" width="96" height="5"/></g>'
+      + '<g fill="#FFFFFF" opacity=".35"><rect x="40" y="120" width="60" height="3"/><rect x="60" y="126" width="30" height="3"/><rect x="290" y="140" width="70" height="3"/><rect x="310" y="146" width="36" height="3"/></g>'
+      + '<rect y="234" width="400" height="66" fill="#4A2D5E"/><g fill="#FFD08A" opacity=".55"><rect x="290" y="242" width="56" height="2"/><rect x="300" y="252" width="36" height="2"/><rect x="310" y="264" width="16" height="2"/></g><rect y="234" width="400" height="2" fill="#7A4A7E"/>',
+    weltall: '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07061C"/><stop offset="1" stop-color="#1E1046"/></linearGradient>'
+      + '<radialGradient id="n1"><stop offset="0" stop-color="#E06CC4" stop-opacity=".55"/><stop offset="1" stop-color="#E06CC4" stop-opacity="0"/></radialGradient>'
+      + '<radialGradient id="n2"><stop offset="0" stop-color="#5B8CFF" stop-opacity=".5"/><stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/></radialGradient></defs>'
+      + '<rect width="400" height="300" fill="url(#s)"/><ellipse cx="110" cy="90" rx="120" ry="60" fill="url(#n1)"/><ellipse cx="270" cy="150" rx="130" ry="56" fill="url(#n2)"/>' + stars(80, 23, 230)
+      + '<g transform="translate(330 64)"><ellipse rx="34" ry="8" fill="none" stroke="#E7C68A" stroke-width="4" opacity=".9"/><circle r="20" fill="#F2A65A"/><rect x="-20" y="-4" width="40" height="4" fill="#D9874A"/><rect x="-18" y="6" width="36" height="3" fill="#D9874A"/><path d="M-34 0 A34 8 0 0 0 34 0" fill="none" stroke="#E7C68A" stroke-width="4"/></g>'
+      + '<circle cx="56" cy="170" r="9" fill="#7FD3E8"/><rect x="47" y="168" width="18" height="2" fill="#5AB5CF"/><rect y="234" width="400" height="66" fill="#4A4F68"/><path d="M0 234 Q100 228 200 232 T400 230 V236 H0Z" fill="#5D6380"/>'
+      + '<g fill="#3A3E55"><ellipse cx="70" cy="258" rx="18" ry="5"/><ellipse cx="300" cy="278" rx="26" ry="6"/><ellipse cx="200" cy="292" rx="12" ry="3"/><ellipse cx="350" cy="248" rx="10" ry="3"/></g>',
+    regenbogen: sky([0, '#8FCBF2'], [1, '#F3E8FF'])
+      + '<g fill="none" stroke-width="10" opacity=".75"><path d="M30 240 A170 170 0 0 1 370 240" stroke="#F06A6A"/><path d="M40 240 A160 160 0 0 1 360 240" stroke="#F5A050"/><path d="M50 240 A150 150 0 0 1 350 240" stroke="#F5D45A"/><path d="M60 240 A140 140 0 0 1 340 240" stroke="#7CCB7A"/><path d="M70 240 A130 130 0 0 1 330 240" stroke="#6AA8F0"/><path d="M80 240 A120 120 0 0 1 320 240" stroke="#A884E8"/></g>'
+      + '<g fill="#FFFFFF" opacity=".8"><rect x="34" y="40" width="40" height="8"/><rect x="44" y="34" width="20" height="6"/><rect x="316" y="56" width="46" height="8"/><rect x="328" y="50" width="22" height="6"/></g>'
+      + '<g fill="#FFFFFF"><circle cx="20" cy="236" r="26"/><circle cx="56" cy="230" r="22"/><circle cx="96" cy="238" r="18"/><circle cx="304" cy="238" r="18"/><circle cx="344" cy="230" r="22"/><circle cx="382" cy="236" r="26"/></g><rect y="234" width="400" height="66" fill="#FFFFFF"/>'
+      + '<path d="M0 256 Q50 248 100 256 T200 256 T300 256 T400 256 V262 Q350 256 300 262 T200 262 T100 262 T0 262Z" fill="#E4ECF8"/><path d="M0 282 Q60 274 120 282 T240 282 T400 280 V288 Q300 284 200 290 T0 290Z" fill="#E4ECF8"/>',
+    fruehling: SPRING + blossoms(9, 5, 20, 215, 1.2, 1.7) + blossoms(4, 13, 246, 292, .9, 1.1) + loosePetals(7, 9),
+    sommer: sky([0, '#3FA4E8'], [1, '#BFE6FA'])
+      + `<g transform="translate(330 64)"><circle r="44" fill="#FFF1A8" opacity=".35"/><circle r="26" fill="#FFE07A"/><g fill="#FFE07A">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<rect x="34" y="-2" width="10" height="4" transform="rotate(${a})"/>`).join('')}</g></g>`
+      + '<g fill="#FFFFFF" opacity=".55"><rect x="30" y="80" width="40" height="6"/><rect x="40" y="74" width="18" height="6"/></g><path d="M0 228 Q100 216 200 222 T400 218 V240 H0Z" fill="#C9D86A"/><rect y="234" width="400" height="66" fill="#E2C35E"/>'
+      + '<g fill="#C9A443"><rect y="250" width="400" height="2"/><rect y="266" width="400" height="2"/><rect y="284" width="400" height="2"/></g><g fill="#FFFFFF" opacity=".25"><rect x="0" y="236" width="400" height="2"/></g>',
+    herbst: AUTUMN + '<circle cx="82" cy="196" r="30" fill="#FFD27A" opacity=".55"/><path d="M0 226 Q100 212 200 222 T400 214 V240 H0Z" fill="#B8662E"/><rect y="234" width="400" height="66" fill="#9C5A2A"/>'
+      + leaves(34, 41, 242, 298, .9, 1.25) + leaves(4, 17, 30, 200, 1.1, 1.4),
+    winter: sky([0, '#7E91B8'], [1, '#D6E0EE'])
+      + '<circle cx="310" cy="70" r="20" fill="#F2F5FA" opacity=".55"/><path d="M0 228 Q100 212 200 222 T400 214 V240 H0Z" fill="#E6EDF7"/><rect y="234" width="400" height="66" fill="#F4F7FB"/>'
+      + '<path d="M0 262 Q120 252 240 260 T400 256 V264 Q300 262 200 268 T0 270Z" fill="#DCE5F2"/><path d="M0 288 Q100 280 200 288 T400 284 V292 Q300 290 200 294 T0 296Z" fill="#DCE5F2"/>' + specks(80, 29, ['#FFFFFF']),
+  };
+  // Eigene Retro-Fassungen: Frühling mit kleinen Blütenblättern, Herbst mit Pixelblättern
+  const RETRO = {
+    fruehling: SPRING + specks(40, 5, ['#F59CC0', '#F7B6CF', '#E8749F'], true),
+    herbst: AUTUMN + '<rect x="62" y="176" width="40" height="40" fill="#FFD27A" opacity=".55"/><rect y="222" width="400" height="12" fill="#B8662E"/><rect y="234" width="400" height="66" fill="#9C5A2A"/>' + pixLeaves(20, 41, 240, 290) + pixLeaves(3, 17, 40, 190),
+  };
+  const css = Object.entries(HI).map(([k, b]) => `.stage.bg-${k}{background:${svg(b)} center bottom / cover no-repeat}.stage.bg-${k}::after,.stage.bg-${k}::before{display:none}`).join('')
+    + Object.entries(RETRO).map(([k, b]) => `.stage.retro.bg-${k}{background:${svg(b)} center bottom / cover no-repeat}`).join('');
+  const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+})();
 const stageName = (s, line) => s >= 3 && line ? LINES[line][s === 3 ? 'teen' : 'adult'] : STAGES[s].name;
 const ITEMS = { stirnband: 'Stirnband', flasche: 'Trinkflasche', sneaker: 'Turnschuhe', handtuch: 'Handtuch', hantel: 'Hantel', medaille: 'Medaille' };
 const BASE_ITEMS = Object.keys(ITEMS);
@@ -1692,6 +1781,15 @@ function unlockBottle() {
   toast(`Neue Flaschenfarbe: ${BOTTLES[k].name}!${hasBottle ? '' : ' Sie erscheint, sobald du die Trinkflasche findest.'}`);
   confetti(60);
 }
+// Belohnung für eine Woche mit allen Wochenzielen: eine zufällige neue Bühne, gleich angelegt
+function unlockScene() {
+  const have = state.scenes || [];
+  const free = Object.keys(SCENES).filter(k => !have.includes(k));
+  if (!free.length) return;
+  const k = pick(free);
+  state.scenes = [...have, k]; state.scene = k;
+  toast(`Alle Wochenziele geschafft! Neue Bühne: ${SCENES[k]}`);
+}
 // Belohnung fürs Wochenschrittziel: erst die Turnschuhe (Klassiker), danach das zweifarbige Modell
 function unlockShoe() {
   if (!state.items.some(i => i.id === 'sneaker')) {
@@ -1736,7 +1834,7 @@ function commit() {
     if (g.id === 'water') unlockBottle();
     if (g.id === 'steps') unlockShoe();
   });
-  if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); }
+  if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); unlockScene(); }
   // Persönliche Rekorde feiern (nicht beim allerersten Wert)
   if (state.recs) {
     const nr = Object.keys(REC_LABELS).filter(k => D.recs[k] > (state.recs[k] || 0) && (state.recs[k] || 0) > 0);
@@ -1823,6 +1921,9 @@ function render() {
   $('stageChip').textContent = stageName(D.stage, D.line) + (D.master ? ` · Meister ${D.master}` : '');
   const stEl = document.querySelector('.pet .stage');
   [1, 2, 3, 4, 5].forEach(i => stEl.classList.toggle('m' + i, D.master >= i));
+  const sc = sceneKey(state);
+  Object.keys(SCENES).forEach(k => stEl.classList.toggle('bg-' + k, sc === k));
+  stEl.classList.toggle('retro', !isHi());
   const showLine = D.stage >= 1 && D.lean;
   $('formChip').hidden = !showLine;
   if (showLine) $('formChip').textContent = D.stage >= 3 ? LINES[D.line].lineName : `Tendenz: ${LINES[D.lean].animal}`;
@@ -1907,6 +2008,12 @@ function render() {
   $('shoePick').innerHTML = Object.entries(SHOES).map(([k, sh]) => haveS.includes(k)
     ? `<button type="button" data-shoe="${k}" aria-pressed="${k === curS}"><i class="shoe-dot" style="background:${sh.up}${sh.toe ? `;box-shadow:inset -5px 0 0 ${sh.toe}` : ''}"></i>${sh.name}</button>`
     : `<button type="button" disabled title="Kommt mit einem erreichten Wochenschrittziel">? Noch offen</button>`).join('');
+  // Bühnen: Laufbahn plus freigeschaltete Szenen, fehlende als ein Sammel-Knopf
+  const haveSc = state.scenes || [], curSc = sceneKey(state) || 'laufbahn', openSc = Object.keys(SCENES).length - haveSc.length;
+  $('sceneCount').textContent = `${haveSc.length} von ${Object.keys(SCENES).length} freigeschaltet`;
+  $('scenePick').innerHTML = [['laufbahn', 'Laufbahn'], ...Object.entries(SCENES).filter(([k]) => haveSc.includes(k))]
+    .map(([k, n]) => `<button type="button" data-scene="${k}" aria-pressed="${k === curSc}">${n}</button>`).join('')
+    + (openSc ? `<button type="button" disabled title="Kommt mit einer Woche, in der du alle Wochenziele schaffst">? ${openSc} noch offen</button>` : '');
 
   // Frühere Begleiter
   $('archiveBox').hidden = !state.archive.length;
@@ -2082,6 +2189,10 @@ $('bottleColors').addEventListener('click', e => {
 $('cupPick').addEventListener('click', e => {
   const b = e.target.closest('button[data-cup]'); if (!b) return;
   state.cup = b.dataset.cup; save(); render(); tick();
+});
+$('scenePick').addEventListener('click', e => {
+  const b = e.target.closest('button[data-scene]'); if (!b) return;
+  state.scene = b.dataset.scene === 'laufbahn' ? null : b.dataset.scene; save(); render(); tick();
 });
 $('shoePick').addEventListener('click', e => {
   const b = e.target.closest('button[data-shoe]'); if (!b) return;
