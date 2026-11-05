@@ -115,6 +115,14 @@ button, input { font: inherit; color: inherit; }
 .confirm { background: var(--accent-soft); border-radius: 12px; padding: 12px; display: grid; gap: 10px; font-size: 14px; }
 .danger-zone { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
 .btn.danger-btn { border-color: var(--bad); color: var(--bad); }
+/* Einklappbare Karte (Fundstücke in den Einstellungen) */
+.fold summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary > span:first-child { display: grid; gap: 2px; }
+.fold .fold-title { font-family: var(--f-display); font-size: 20px; font-weight: 700; }
+.fold .chev { width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; margin-right: 4px; }
+.fold[open] .chev { transform: rotate(-135deg); }
+.fold[open] summary { margin-bottom: 8px; }
 .tabs .gear { display: grid; place-items: center; }
 .tabs .gear svg { width: 20px; height: 20px; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
@@ -534,8 +542,10 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     </section>
 
     <section class="card s-items" aria-label="Fundstücke ein- und ausblenden">
-      <div><p class="eyebrow">Fundstücke</p><h2>Ein- und ausblenden</h2></div>
-      <ul class="toggles" id="itemToggles"></ul>
+      <details class="fold" id="itemsFold">
+        <summary><span><span class="eyebrow">Fundstücke <span id="itemsCount"></span></span><span class="fold-title">Ein- und ausblenden</span></span><span class="chev" aria-hidden="true"></span></summary>
+        <ul class="toggles" id="itemToggles"></ul>
+      </details>
     </section>
 
     <section class="card s-backup" aria-label="Backup">
@@ -1666,11 +1676,11 @@ function render() {
     lb.append(div);
   });
   const owned = Object.fromEntries(state.items.map(i => [i.id, i.day]));
-  const season = seasonOf(dateOf(state, state.day));
-  const shown = [...BASE_ITEMS, ...Object.keys(SEASON_ITEMS).filter(k => owned[k] != null || SEASON_ITEMS[k][1] === season)];
-  $('items').innerHTML = shown.map(k => owned[k] != null
-    ? `<button type="button" class="item${state.hidden[k] ? ' off' : ''}" data-item="${k}" aria-pressed="${!state.hidden[k]}"><i></i>${ITEMS[k]} <span class="fine">${state.hidden[k] ? 'abgelegt' : dayLabel(owned[k])}</span></button>`
-    : `<span class="item miss"><i></i>${SEASON_ITEMS[k] ? `Nur im ${SEASON_NAMES[SEASON_ITEMS[k][1]]}: ???` : 'Noch nicht gefunden'}</span>`).join('');
+  // Nur tatsächlich gefundene Stücke zeigen, in Fundreihenfolge
+  const found = state.items.slice().sort((a, b) => a.day - b.day).map(i => i.id);
+  $('items').innerHTML = found.length
+    ? found.map(k => `<button type="button" class="item${state.hidden[k] ? ' off' : ''}" data-item="${k}" aria-pressed="${!state.hidden[k]}"><i></i>${ITEMS[k]} <span class="fine">${state.hidden[k] ? 'abgelegt' : dayLabel(owned[k])}</span></button>`).join('')
+    : '<span class="fine">Noch keine Fundstücke. Sie tauchen nach dem Training zufällig auf.</span>';
 
   // Frühere Begleiter
   $('archiveBox').hidden = !state.archive.length;
@@ -1913,6 +1923,7 @@ function renderSettings() {
   document.querySelectorAll('#themeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (state.theme || 'dark'))));
   document.querySelectorAll('#gfxSeg button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'hi') === isHi())));
   const owned = state.items.slice().sort((a, b) => a.day - b.day);
+  $('itemsCount').textContent = owned.length ? `· ${owned.length} gefunden` : '';
   $('itemToggles').innerHTML = owned.length ? owned.map(i => `<li><span class="t-name"><b>${ITEMS[i.id]}</b><span>gefunden ${dayLabel(i.day)}</span></span><label class="switch"><input type="checkbox" data-item="${i.id}" ${state.hidden[i.id] ? '' : 'checked'} aria-label="${ITEMS[i.id]} anzeigen"> ${state.hidden[i.id] ? 'aus' : 'an'}</label></li>`).join('')
     : '<li class="fine">Noch keine Fundstücke. Sie tauchen nach dem Training zufällig auf.</li>';
   $('backupInfo').textContent = (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
