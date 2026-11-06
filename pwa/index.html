@@ -708,12 +708,13 @@ const lineReason = l => (state.pick || state.lineChosen) ? `Du hast die ${l.line
 const PICKS = [['auto', 'Nach Training'], ['aus', 'Hase'], ['kra', 'Bär'], ['bew', 'Katze'], ['hyb', 'Tiger']];
 // Wochenziele (Woche = 7 Tage ab Tag 1)
 const WEEK_GOALS = [
-  { id: 'n', label: 'Trainings', goal: 3, fmt: v => `${v}` },
-  { id: 'min', label: 'Trainingsminuten', goal: 150, fmt: v => `${v} min` },
+  { id: 'n', label: 'Trainings', goal: 2, fmt: v => `${v}` },
+  { id: 'min', label: 'Trainingsminuten', goal: 120, fmt: v => `${v} min` },
   { id: 'steps', label: 'Schritte pro Tag (Ø der Woche)', goal: 6000, fmt: v => v.toLocaleString('de-DE') },
   { id: 'sleep', label: 'Tage mit gutem Schlaf', goal: 4, fmt: v => `${v}` },
-  { id: 'water', label: 'Tage mit Trinkziel', goal: 5, fmt: v => `${v}` },
+  { id: 'water', label: 'Tage mit Trinkziel', goal: 4, fmt: v => `${v}` },
 ];
+const GOAL_N = WEEK_GOALS[0].goal; // Wochenziel Trainings: Quelle für Serie und Hinweistexte
 // Flaschenfarben: Blau gibt es von Anfang an, jedes erreichte Wochentrinkziel schaltet eine zufällige weitere frei
 const BOTTLES = {
   blau: { name: 'Blau', c: '#2F5BFF' }, gruen: { name: 'Grün', c: '#2FA58E' }, rot: { name: 'Rot', c: '#E5484D' },
@@ -935,10 +936,10 @@ function derive(s) {
     xp += n >= 3 ? 60 : n === 2 ? 25 : 0;
   }
   let streak = 0, i = curWeek;
-  if (weekDays[i] < 2) i--;
-  while (i >= 0 && weekDays[i] >= 2) { streak++; i--; }
+  if (weekDays[i] < GOAL_N) i--;
+  while (i >= 0 && weekDays[i] >= GOAL_N) { streak++; i--; }
   let streakBest = 0, run = 0;
-  weekDays.forEach(n => { run = n >= 2 ? run + 1 : 0; streakBest = Math.max(streakBest, run); });
+  weekDays.forEach(n => { run = n >= GOAL_N ? run + 1 : 0; streakBest = Math.max(streakBest, run); });
   const recs = {
     longest: ws.reduce((a, w) => Math.max(a, w.min), 0),
     weekMost: Math.max(0, ...weekCounts),
@@ -1972,7 +1973,7 @@ function render() {
     $(s).textContent = 'Lv ' + (1 + Math.floor(D.stats[k] / 80));
     $(b).style.width = D.norm[k] * 100 + '%';
   });
-  $('streak').innerHTML = D.streak ? `<b>${D.streak} ${D.streak === 1 ? 'Woche' : 'Wochen'}</b> in Folge mit 2+ Trainings` : 'Noch keine Serie. Ziel: 2 Trainings pro Woche.';
+  $('streak').innerHTML = D.streak ? `<b>${D.streak} ${D.streak === 1 ? 'Woche' : 'Wochen'}</b> in Folge mit ${GOAL_N}+ Trainings` : `Noch keine Serie. Ziel: ${GOAL_N} Trainings pro Woche.`;
 
   $('logDay').textContent = isClean() ? 'Heute' : `Heute · Tag ${state.day + 1}`;
   updatePreview();
