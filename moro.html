@@ -339,6 +339,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .evo-card h2 { font-size: 26px; font-weight: 800; }
 .evo-card .btn.primary { width: auto; padding-inline: 28px; }
 .evo-card .lbl { justify-content: center; }
+.letter-card .paper { text-align: left; justify-self: stretch; } /* Brieftext linksbündig: liest sich als Fließtext */
 .evo-choose { width: 100%; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .toast, .evo-card { animation: none; } .bar > i { transition: none; } }
 /* Aufgeräumte Ansicht (#clean): ohne Prototyp-Steuerung und ohne doppelte Angaben */
@@ -908,7 +909,7 @@ let saveWarned = false;
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); saveWarned = false; }
   catch (e) {
-    if (saveWarned) return;
+    if (saveWarned || !REAL_TIME) return; // im Artefakt-Prototyp ist Speicher oft gesperrt, dort nicht warnen
     saveWarned = true;
     toast('Speichern hat nicht geklappt: Der Browser-Speicher ist voll oder gesperrt. Deine Einträge gehen beim Schließen verloren. Mach jetzt ein Backup unter Einstellungen.', true);
   }
@@ -1918,32 +1919,36 @@ function letterFor(wi) {
   const p = [];
   const MISS = { aus: 'Ich werde ganz hibbelig, wenn ich an die nächste Runde denke.', kra: 'Ich brumme schon vor Vorfreude vor mich hin.', bew: 'Ich strecke mich schon mal und mache mich geschmeidig.', hyb: 'Ich tigere schon vergnügt herum.' };
   const avgW = water.length ? water.reduce((a, b) => a + b, 0) / water.length : 0;
-  const glasses = String(avgW.toFixed(1)).replace('.', ',');
+  const glasses = String(+avgW.toFixed(1)).replace('.', ','); // 6 statt 6,0
+  // Aufbau: kurze Absätze mit je einem Thema (1–2 knappe Sätze), die sprachlich aneinander anschließen
   if (!ws.length) {
-    p.push('Diese Woche haben wir eine Pause gemacht, und das ist völlig in Ordnung. Alles, was wir uns zusammen aufgebaut haben, ist noch da.');
-    p.push(`${MISS[D.line] || 'Ich vermisse unsere Einheiten ein bisschen.'} Eine kurze Runde reicht schon, und wir sind wieder mittendrin.`);
+    p.push('Diese Woche haben wir pausiert, und das ist völlig in Ordnung. Alles, was wir aufgebaut haben, ist noch da.');
+    p.push(`${MISS[D.line] || 'Ich vermisse unser Training schon ein bisschen.'} Eine kurze Einheit reicht, und wir sind wieder mittendrin.`);
     if (water.length) p.push(`Schön, dass du trotzdem ans Trinken gedacht hast: im Schnitt ${glasses} Gläser am Tag.`);
     p.push('Ich glaube an dich. Bis ganz bald!');
     return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', 0], ['Zeit', fmtMin(0)], ['XP', xpW]] };
   }
-  // Einstieg: je nachdem, ob das Trainingsziel der Woche erreicht ist
-  const fl = `beim ${TYPES[fav[0]].label}`;
+  // 1. Die Woche
+  const fl = `beim ${TYPES[fav[0]].label}`, diff = ws.length - prev.length;
   p.push(ws.length >= GOAL_N
-    ? `Was für eine Woche! ${ws.length}-mal waren wir zusammen unterwegs, ${fmtMin(mins)} lang, am liebsten ${fl}. Ich habe jede Minute genossen.`
-    : `Diese Woche hast du dir Zeit für uns genommen: ${fmtMin(mins)} ${fl}. Genau solche Einheiten bringen uns Schritt für Schritt weiter.`);
-  const diff = ws.length - prev.length;
-  p.push(wi === 0 ? 'Unsere erste gemeinsame Woche ist geschafft. Der Anfang ist das Schwerste, und den hast du gemeistert.'
-    : diff > 0 ? `Das ${diff === 1 ? 'ist sogar eine Einheit' : `sind sogar ${diff} Einheiten`} mehr als letzte Woche. Ich bin richtig stolz auf dich!`
-    : diff === 0 ? 'Genauso oft wie letzte Woche. So wird aus Training eine Gewohnheit, die bleibt.'
-    : 'Du bist drangeblieben, und darauf kommt es an. Jede Einheit zählt.');
+    ? `Was für eine Woche! ${ws.length}-mal waren wir unterwegs, ${fmtMin(mins)} lang, am liebsten ${fl}.`
+    : `Diese Woche hast du dir Zeit für uns genommen: ${fmtMin(mins)} ${fl}.`);
+  // 2. Einordnung: Vergleich zur Vorwoche, Wochenziele, Trinken
+  const compare = wi === 0 ? 'Unsere erste Woche ist geschafft, und der Anfang ist das Schwerste.'
+    : diff > 0 ? `Das ${diff === 1 ? 'ist eine Einheit' : `sind ${diff} Einheiten`} mehr als letzte Woche, ich bin stolz auf dich!`
+    : diff === 0 ? 'Genauso oft wie letzte Woche, so wird Training zur Gewohnheit.'
+    : 'Du bist drangeblieben, genau darauf kommt es an.';
   const wg = weekGoals(s, wi), wgDone = wg.filter(g => g.done).length;
-  if (wgDone === wg.length) p.push('Und du hast alle Wochenziele geschafft. Einfach großartig!');
-  else if (wgDone >= 2) p.push(`${wgDone} von ${wg.length} Wochenzielen hast du geschafft. Eine richtig starke Basis!`);
+  const goalS = wgDone === wg.length ? 'Dazu alle Wochenziele geschafft, großartig!'
+    : wgDone >= 2 ? `Dazu ${['', '', 'zwei', 'drei', 'vier'][wgDone] || wgDone} Wochenziele geschafft, eine starke Basis.`
+    : wgDone === 1 ? 'Dazu ein Wochenziel geschafft, ein guter Anfang.' : '';
+  p.push([compare, goalS].filter(Boolean).join(' '));
   if (water.length) p.push(avgW >= WATER_GOAL
-    ? `Ans Trinken hast du auch gedacht: im Schnitt ${glasses} Gläser am Tag. Davon glänze ich!`
+    ? `Im Schnitt ${glasses} Gläser Wasser am Tag, davon glänze ich!`
     : `Im Schnitt ${glasses} Gläser Wasser am Tag. Ein Glas mehr, und ich glänze für dich.`);
-  p.push(`${trainedWeeks < 12 ? 'Auch wenn man es von außen noch nicht sieht, dein Körper baut schon um.' : 'Jetzt zeigt dein Körper, was du geleistet hast.'} ${fact.text.split('. ')[0]}.`);
-  p.push(`Dank dir bin ich diese Woche um ${xpW} XP gewachsen. ${['Ich freue mich schon auf unsere nächste Runde!', 'Weiter so, ich bin an deiner Seite!', 'Auf eine starke nächste Woche!'][wi % 3]}`);
+  // 3. Körper, 4. Moro wächst mit + Gruß
+  p.push(`${trainedWeeks < 12 ? 'Dein Körper baut schon um, auch wenn man es noch nicht sieht.' : 'Jetzt zeigt dein Körper, was du geleistet hast.'} ${fact.text.split('. ')[0]}.`);
+  p.push(`Und ich wachse mit dir: ${xpW} XP diese Woche. ${['Ich freue mich auf die nächste!', 'Weiter so, ich bin an deiner Seite!', 'Auf eine starke nächste Woche!'][wi % 3]}`);
   return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', ws.length], ['Zeit', fmtMin(mins)], ['XP', xpW]] };
 }
 let pendingLetter = null, letterOpen = false;
