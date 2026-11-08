@@ -331,6 +331,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .toasts { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; width: min(420px, calc(100% - 32px)); pointer-events: none; }
 .toast { background: var(--ink); color: var(--surface); padding: 10px 14px; border-radius: 12px; font-size: 14px; box-shadow: var(--shadow); animation: tin .25s ease; }
 @keyframes tin { from { transform: translateY(8px); opacity: 0; } }
+.toast.warn { box-shadow: inset 4px 0 0 var(--bad), var(--shadow); }
 .evo { position: fixed; inset: 0; z-index: 40; background: rgba(13,18,32,.55); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .evo-card { background: var(--surface); border-radius: 20px; padding: 24px; max-width: 420px; width: 100%; display: grid; gap: 12px; text-align: center; justify-items: center; box-shadow: var(--shadow); animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } }
@@ -557,9 +558,11 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
         </div>
       </div>
       <div class="egg-set">
-        <p class="lbl">Neues Ei</p>
-        <p class="fine" id="eggSetText"></p>
-        <div><button class="btn" id="eggSetBtn" type="button">Neues Ei ausbrüten</button></div>
+        <div id="eggSetMain" hidden>
+          <p class="lbl">Neues Ei</p>
+          <p class="fine" id="eggSetText"></p>
+          <div><button class="btn" id="eggSetBtn" type="button">Neues Ei ausbrüten</button></div>
+        </div>
         <div id="setPickBox" hidden>
           <p class="lbl" style="margin-top:12px">Tier dieses Eis</p>
           <div class="pickseg" id="setPickSeg" role="group" aria-label="Tier dieses Eis"></div>
@@ -898,7 +901,16 @@ function load() {
     return s;
   } catch (e) { return null; }
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+// Schlägt das Speichern fehl (Speicher voll oder gesperrt), einmal deutlich warnen. Klappt es wieder, wird die Warnung zurückgesetzt.
+let saveWarned = false;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); saveWarned = false; }
+  catch (e) {
+    if (saveWarned) return;
+    saveWarned = true;
+    toast('Speichern hat nicht geklappt: Der Browser-Speicher ist voll oder gesperrt. Deine Einträge gehen beim Schließen verloren. Mach jetzt ein Backup unter Einstellungen.', true);
+  }
+}
 
 // Stand der Wochenziele für Woche wi (auch für eine vergangene Woche, z. B. nach dem Nachtragen)
 function weekGoals(s, wi) {
@@ -1763,11 +1775,14 @@ document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener
 function look(stage, overrides = {}) {
   return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0, bottle: bottleKey(state), cup: state.cup === 'becher' ? 'becher' : 'flasche', shoe: shoeKey(state) }, overrides);
 }
-function toast(msg) {
-  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+function toast(msg, warn = false) {
+  const el = document.createElement('div'); el.className = 'toast' + (warn ? ' warn' : ''); el.textContent = msg;
+  if (warn) el.setAttribute('role', 'alert');
   $('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3600);
-  while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
+  setTimeout(() => el.remove(), warn ? 9000 : 3600);
+  // Höchstens drei Meldungen; Warnungen werden nicht verdrängt
+  const box = $('toasts');
+  while (box.children.length > 3) ([...box.children].find(c => !c.classList.contains('warn')) || box.firstChild).remove();
 }
 function rollItem(day, force, chance = .35) {
   const owned = new Set(state.items.map(i => i.id));
@@ -2412,14 +2427,17 @@ function renderSettings() {
     + (state.lastBackup ? `Letztes Backup: ${new Date(state.lastBackup).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}. ` : 'Noch kein Backup erstellt. ')
     + 'Deine Daten liegen nur auf diesem Gerät. Ein Backup schützt sie, wenn du den Browser-Speicher leerst oder das Handy wechselst.';
   $('bkDownload').hidden = !REAL_TIME; // Downloads sind im Artefakt-Fenster gesperrt
+  // Neues Ei erst zeigen, wenn Moro ausgewachsen ist; ausbrüten ab Woche 12
   const egg = canEgg();
+  $('eggSetMain').hidden = D.stage < 4;
   $('eggSetText').textContent = egg
     ? `${state.name} ist erwachsen und seit über 12 Wochen dabei. Mit einem neuen Ei zieht ${state.name} ins Album unter „Frühere Begleiter“.`
-    : `Möglich, sobald ${state.name} erwachsen ist und ihr mindestens 12 Wochen zusammen trainiert habt.`;
+    : `${state.name} ist erwachsen. Ab Woche 12 kannst du ein neues Ei ausbrüten, dann zieht ${state.name} ins Album unter „Frühere Begleiter“.`;
   $('eggSetBtn').disabled = !egg;
   // Tierwahl fürs aktuelle Ei: frei, sobald das erste Ei abgeschlossen ist (bis zur Teen-Stufe)
   const pickable = state.archive.length >= 1 && D.stage < 3;
   $('setPickBox').hidden = !pickable;
+  document.querySelector('.egg-set').hidden = D.stage < 4 && !pickable;
   if (pickable) {
     pickButtons($('setPickSeg'), state.pick || 'auto', v => { state.pick = v === 'auto' ? null : v; commit(); });
     $('setPickText').textContent = state.pick ? `${LINES[state.pick].animal} schlüpft in jedem Fall, egal wie du trainierst.` : 'Das Tier ergibt sich aus deinem Training.';
@@ -2516,10 +2534,22 @@ $('bkReset').addEventListener('click', e => {
 /* ---------- Animation ---------- */
 let frame = 0;
 const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-function tick() {
+// auto: Aufruf aus dem Animations-Takt. Dann nur zeichnen, was sichtbar ist (schont den Akku):
+// nichts bei verborgener App, Moro nur im Reiter „Heute“, ohne Bewegung nur bei geändertem Aussehen.
+let lastStill = '';
+function tick(auto = false) {
   if (!D) return;
+  if (auto && document.hidden) return;
+  const pet = !auto || $('petCanvas').offsetParent !== null;
+  if (!pet && !evoOpen) return;
+  const L = look(D.stage);
+  if (auto && reduce) {
+    const k = [isHi(), state.theme, evoOpen, pet, JSON.stringify(L)].join('|');
+    if (k === lastStill) return;
+    lastStill = k;
+  }
   const f = reduce ? 1 : frame++;
-  drawInto($('petCanvas'), look(D.stage), f);
+  if (pet) drawInto($('petCanvas'), L, f);
   if (evoOpen) drawInto($('evoCanvas'), look(D.stage, { face: 'happy' }), f);
 }
 
@@ -2541,7 +2571,7 @@ function boot(data) {
   D = derive(state);
   if (syncDay()) commit(); else render();
   tick();
-  setInterval(tick, 170);
+  setInterval(() => tick(true), 170);
   if (REAL_TIME) {
     document.addEventListener('visibilitychange', () => { if (!document.hidden && syncDay()) commit(); });
     setInterval(() => { if (syncDay()) commit(); }, 60000);
