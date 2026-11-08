@@ -11,7 +11,7 @@ Dieselbe App wie das Artefakt `moro.html`, aber als installierbare Web-App:
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Die App. **Nicht von Hand bearbeiten**, wird aus `../moro.html` gebaut. |
+| `index.html` | Die App. **Nicht von Hand bearbeiten**, wird aus `../moro.html` gebaut. Liegt nicht im Repository (`.gitignore`), der Workflow baut sie beim Veröffentlichen. |
 | `manifest.webmanifest` | Name, Farben und Icons für die Installation |
 | `sw.js` | Service Worker für den Offline-Betrieb |
 | `icons/` | App-Icons (32, 180, 192, 512, maskierbar 512) |
@@ -22,7 +22,7 @@ Dieselbe App wie das Artefakt `moro.html`, aber als installierbare Web-App:
 ## Änderungen an der App
 
 1. In `moro.html` ändern (wie bisher beim Artefakt).
-2. Bauen:
+2. Zum lokalen Testen bauen (fürs Veröffentlichen nicht nötig, das erledigt der Workflow):
 
    ```bash
    pwsh -File pwa/build.ps1
@@ -40,11 +40,11 @@ Dann `http://localhost:8765/` im Browser öffnen. Service Worker funktionieren n
 
 ## Veröffentlichen
 
-Das Repository `AgentK42/Tamagotchi` veröffentlicht `pwa/` bei jedem Push auf `main` automatisch über GitHub Pages (Workflow `.github/workflows/pages.yml`) unter **https://agentk42.github.io/Tamagotchi/**. Einmalig muss im Repository unter Settings → Pages die Quelle „GitHub Actions“ gewählt sein.
+Das Repository `AgentK42/Tamagotchi` baut `pwa/` bei jedem Push auf `main` mit `build.ps1` aus dem aktuellen `moro.html` und veröffentlicht es automatisch über GitHub Pages (Workflow `.github/workflows/pages.yml`) unter **https://agentk42.github.io/Tamagotchi/**. Ein vergessener Build kann also keine veraltete App mehr veröffentlichen. Einmalig muss im Repository unter Settings → Pages die Quelle „GitHub Actions“ gewählt sein.
 
 Alternativ geht jeder andere statische Webspace mit **https**, zum Beispiel:
 
-- **Netlify Drop:** Den Ordner `pwa` auf app.netlify.com/drop ziehen.
+- **Netlify Drop:** Erst `build.ps1` ausführen, dann den Ordner `pwa` auf app.netlify.com/drop ziehen.
 - **GitHub Pages:** Den Inhalt von `pwa/` in ein Repository legen und Pages aktivieren.
 
 `tools/` muss nicht mit hochgeladen werden.

@@ -314,11 +314,17 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 
 /* Verlauf */
 .hist ul { list-style: none; padding: 0; margin: 0; display: grid; }
-.hist li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+.hist li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
 .hist li:last-child { border-bottom: none; }
 .hist .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
 .hist .x { font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
 .hist .m { color: var(--muted); font-size: 13px; }
+.hist .del { border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; padding: 2px 7px; border-radius: 8px; font-size: 15px; line-height: 1; }
+.hist .del:hover { border-color: var(--line); color: var(--ink); }
+.hist .del.armed { border-color: var(--bad); color: var(--bad); font-size: 12px; font-weight: 600; padding: 4px 8px; }
+.daypick { flex-shrink: 0; }
+.daypick button { padding: 5px 11px; font-size: 13px; }
+.quest-row:has(> .daypick) { flex-wrap: wrap; row-gap: 10px; }
 .empty { color: var(--muted); font-size: 14px; }
 
 /* Toast + Entwicklung */
@@ -421,7 +427,10 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     </section>
 
     <section class="card health" aria-label="Wasser, Schlaf und Schritte">
-      <div><p class="eyebrow">Heute für dich</p><h2>Wasser, Schlaf, Schritte</h2></div>
+      <div class="quest-row">
+        <div><p class="eyebrow" id="healthDay">Heute für dich</p><h2>Wasser, Schlaf, Schritte</h2></div>
+        <div class="seg daypick" id="healthDaySeg" role="group" aria-label="Tag für Wasser, Schlaf und Schritte"><button type="button" data-back="0">Heute</button><button type="button" data-back="1">Gestern</button></div>
+      </div>
       <div>
         <p class="lbl">Wasser <output id="waterOut">0 / 6 Gläser</output></p>
         <div class="glasses" id="glasses" role="group" aria-label="Gläser Wasser heute"></div>
@@ -479,7 +488,10 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     </section>
 
     <section class="card log" aria-label="Training eintragen">
-      <div><p class="eyebrow" id="logDay">Heute · Tag 1</p><h2>Training eintragen</h2></div>
+      <div class="quest-row">
+        <div><p class="eyebrow" id="logDay">Heute · Tag 1</p><h2>Training eintragen</h2></div>
+        <div class="seg daypick" id="logDaySeg" role="group" aria-label="Tag für das Training"><button type="button" data-back="0">Heute</button><button type="button" data-back="1">Gestern</button></div>
+      </div>
       <form id="logForm" style="display:grid;gap:16px">
         <fieldset>
           <legend>Sportart</legend>
@@ -888,6 +900,14 @@ function load() {
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 
+// Stand der Wochenziele für Woche wi (auch für eine vergangene Woche, z. B. nach dem Nachtragen)
+function weekGoals(s, wi) {
+  const w0 = wi * 7, wr = s.workouts.filter(w => w.day >= w0 && w.day < w0 + 7 && w.day <= s.day);
+  let wSteps = 0, wSleep = 0, wWater = 0;
+  for (let d = w0; d < w0 + 7 && d <= s.day; d++) { wSteps += hp(s, d).steps || 0; if (hp(s, d).sleep === 'gut') wSleep++; if ((hp(s, d).water || 0) >= WATER_GOAL) wWater++; }
+  const wVals = { n: wr.length, min: wr.reduce((a, w) => a + w.min, 0), steps: Math.round(wSteps / 7), sleep: wSleep, water: wWater };
+  return WEEK_GOALS.map(g => Object.assign({}, g, { val: wVals[g.id], done: wVals[g.id] >= g.goal }));
+}
 function derive(s) {
   const ws = s.workouts.filter(w => w.day <= s.day);
   const byDay = {};
@@ -953,11 +973,7 @@ function derive(s) {
   }
   if (!s.paused && today.sleep === 'schlecht' && gap !== 0) mood = Object.assign({}, mood, { text: mood.text + ' Du hast schlecht geschlafen, heute lieber locker.' });
   const shine = (today.water || 0) >= WATER_GOAL;
-  const w0 = curWeek * 7, wr = ws.filter(w => w.day >= w0 && w.day < w0 + 7);
-  let wSteps = 0, wSleep = 0, wWater = 0;
-  for (let d = w0; d < w0 + 7 && d <= s.day; d++) { wSteps += hp(s, d).steps || 0; if (hp(s, d).sleep === 'gut') wSleep++; if ((hp(s, d).water || 0) >= WATER_GOAL) wWater++; }
-  const wVals = { n: wr.length, min: wr.reduce((a, w) => a + w.min, 0), steps: Math.round(wSteps / 7), sleep: wSleep, water: wWater };
-  const goals = WEEK_GOALS.map(g => Object.assign({}, g, { val: wVals[g.id], done: wVals[g.id] >= g.goal }));
+  const goals = weekGoals(s, curWeek);
   const norm = {}; for (const k in stats) norm[k] = Math.min(1, stats[k] / 700);
   return { goals, xp, stats, norm, dayXp, weekDays, weekCounts, curWeek, streak, count, stage, master, lean, line, gap, mood, recs, shine, quest: questOf(s, s.day), questDone: !!(s.questsDone || {})[s.day] };
 }
@@ -1722,6 +1738,9 @@ function drawPetHi(ctx, L, f) {
 /* ---------- Zustand & Aktionen ---------- */
 let state, D;
 const $ = id => document.getElementById(id);
+// Nachtragen: Training und Tageswerte wahlweise für gestern. Springt an einem neuen Tag auf „Heute“ zurück.
+const back = { log: 0, health: 0, at: -1 };
+const entryDay = k => { if (back.at !== state.day) { back.log = back.health = 0; back.at = state.day; } return Math.max(0, state.day - back[k]); };
 
 // Grafikstil: Highres (240 × 240) oder Retro (40 × 40)
 const isHi = () => (state && state.style) !== 'retro';
@@ -1803,8 +1822,15 @@ function unlockShoe() {
   toast(`Neue Turnschuhe: ${SHOES[k].name}!`);
   confetti(60);
 }
-function commit() {
+// extraDay: nachgetragener Tag (gestern), damit dessen Tagesquest und Wochenziele auch zählen
+function commit(extraDay = state.day) {
   D = derive(state);
+  // Nach dem Löschen eines Trainings kann die Stufe sinken: dann später erneut feiern
+  if (D.stage < state.seenStage) {
+    for (let s = D.stage + 1; s <= state.seenStage; s++) delete state.stageDays[s];
+    state.seenStage = D.stage;
+  }
+  if (D.master < (state.seenMaster || 0)) state.seenMaster = D.master;
   let askLine = false;
   if (D.stage >= 3 && !state.line) { state.line = D.line; askLine = !state.pick; D = derive(state); }
   if (D.stage > state.seenStage) {
@@ -1817,22 +1843,30 @@ function commit() {
     state.seenMaster = D.master;
     if (evoOpen) pendingMaster = D.master; else showMaster(D.master);
   }
-  // Tagesquest automatisch abhaken
-  if (!state.paused && !state.questsDone[state.day] && D.quest.check(state, state.day)) {
-    state.questsDone[state.day] = true; D = derive(state);
-    toast(`Tagesquest geschafft: +${QUEST_XP} XP`);
-    const it = rollItem(state.day, null, .5); if (it) toast(`Fundstück: ${ITEMS[it]}!`);
+  // Tagesquest automatisch abhaken (heute und ggf. den nachgetragenen Tag)
+  const qDays = extraDay < state.day ? [extraDay, state.day] : [state.day];
+  qDays.forEach(d => {
+    if (state.paused || state.questsDone[d] || !questOf(state, d).check(state, d)) return;
+    state.questsDone[d] = true; D = derive(state);
+    toast(`${d === state.day ? 'Tagesquest' : 'Tagesquest von gestern'} geschafft: +${QUEST_XP} XP`);
+    const it = rollItem(d, null, .5); if (it) toast(`Fundstück: ${ITEMS[it]}!`);
     confetti(50);
-  }
-  // Wochenziele: einmal pro Woche und Ziel feiern
-  const gd = state.goalsDone[D.curWeek] || (state.goalsDone[D.curWeek] = []);
-  D.goals.forEach(g => {
-    if (!g.done || gd.includes(g.id)) return;
-    gd.push(g.id); toast(`Wochenziel geschafft: ${g.label}`);
-    if (g.id === 'water') unlockBottle();
-    if (g.id === 'steps') unlockShoe();
   });
-  if (D.goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); unlockScene(); }
+  // Wochenziele: einmal pro Woche und Ziel feiern (auch die Vorwoche, wenn dort nachgetragen wurde)
+  const checkGoals = (wi, goals) => {
+    const gd = state.goalsDone[wi] || (state.goalsDone[wi] = []);
+    const tag = wi < D.curWeek ? ' (letzte Woche)' : '';
+    goals.forEach(g => {
+      if (!g.done || gd.includes(g.id)) return;
+      gd.push(g.id); toast(`Wochenziel geschafft${tag}: ${g.label}`);
+      if (g.id === 'water') unlockBottle();
+      if (g.id === 'steps') unlockShoe();
+    });
+    if (goals.every(g => g.done) && !gd.includes('all')) { gd.push('all'); confetti(100); unlockScene(); }
+  };
+  const xWeek = Math.floor(extraDay / 7);
+  if (xWeek < D.curWeek) checkGoals(xWeek, weekGoals(state, xWeek));
+  checkGoals(D.curWeek, D.goals);
   // Persönliche Rekorde feiern (nicht beim allerersten Wert)
   if (state.recs) {
     const nr = Object.keys(REC_LABELS).filter(k => D.recs[k] > (state.recs[k] || 0) && (state.recs[k] || 0) > 0);
@@ -1953,7 +1987,13 @@ function render() {
   });
   $('streak').innerHTML = D.streak ? `<b>${D.streak} ${D.streak === 1 ? 'Woche' : 'Wochen'}</b> in Folge mit ${GOAL_N}+ Trainings` : `Noch keine Serie. Ziel: ${GOAL_N} Trainings pro Woche.`;
 
-  $('logDay').textContent = isClean() ? 'Heute' : `Heute · Tag ${state.day + 1}`;
+  const logD = entryDay('log'), logL = logD < state.day ? 'Gestern' : 'Heute';
+  $('logDay').textContent = isClean() ? logL : `${logL} · Tag ${logD + 1}`;
+  // Heute/Gestern-Schalter erst ab dem zweiten Tag
+  [['logDaySeg', 'log'], ['healthDaySeg', 'health']].forEach(([id, k]) => {
+    $(id).hidden = state.day === 0;
+    $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.back === state.day - entryDay(k))));
+  });
   updatePreview();
 
   const wk = D.curWeek + 1;
@@ -2048,7 +2088,8 @@ function render() {
   $('questState').classList.toggle('done', D.questDone);
 
   // Wasser, Schlaf, Schritte
-  const hd = hp(state, state.day);
+  const hDay = entryDay('health'), hd = hp(state, hDay);
+  $('healthDay').textContent = hDay < state.day ? 'Gestern nachtragen' : 'Heute für dich';
   $('waterOut').textContent = `${Math.min(hd.water || 0, WATER_MAX)} / ${WATER_MAX} Gläser · ${String((Math.min(hd.water || 0, WATER_MAX) * .25).toFixed(2)).replace('.', ',').replace(/0$/, '')} l`;
   $('glasses').innerHTML = Array.from({ length: WATER_MAX }, (_, i) => `<button type="button" class="glass${i < (hd.water || 0) ? ' full' : ''}${i === WATER_GOAL - 1 ? ' goal' : ''}" data-n="${i + 1}" aria-label="${i + 1} ${i ? 'Gläser' : 'Glas'}"></button>`).join('');
   document.querySelectorAll('#sleepSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === hd.sleep)));
@@ -2094,7 +2135,7 @@ function render() {
   $('recs').innerHTML = Object.keys(REC_LABELS).map(k => `<div class="rec"><b>${rv[k]}</b><span>${REC_LABELS[k]}</span></div>`).join('');
 
   const list = state.workouts.filter(w => w.day <= state.day).slice().sort((a, b) => b.day - a.day).slice(0, 8);
-  $('hist').innerHTML = list.length ? list.map(w => `<li><span class="d">${dayLabel(w.day)}</span><span>${TYPES[w.type].label} <span class="m">· ${w.min} min · ${intLabel(w.int)}</span></span><span class="x">+${xpOf(w)}</span></li>`).join('')
+  $('hist').innerHTML = list.length ? list.map(w => `<li><span class="d">${dayLabel(w.day)}</span><span>${TYPES[w.type].label} <span class="m">· ${w.min} min · ${intLabel(w.int)}</span></span><span class="x">+${xpOf(w)}</span><button type="button" class="del" data-del="${w.id}" aria-label="${TYPES[w.type].label} vom ${dayLabel(w.day)} löschen" title="Löschen">×</button></li>`).join('')
     : '<li class="empty" style="display:block">Noch keine Trainings. Trag oben dein erstes ein.</li>';
 }
 
@@ -2104,11 +2145,11 @@ function formVals() {
 function updatePreview() {
   const v = formVals(); const x = xpOf(v);
   const top = Object.entries(TYPES[v.type].w).sort((a, b) => b[1] - a[1])[0][0];
-  const today = D.dayXp[state.day] || 0;
+  const day = entryDay('log'), today = D.dayXp[day] || 0;
   const room = Math.max(0, DAY_CAP - today);
   $('durOut').textContent = v.min + ' min';
   $('xpPreview').innerHTML = room === 0
-    ? `Heute sind schon ${DAY_CAP} XP erreicht. Morgen zählt es wieder voll.`
+    ? (day < state.day ? `Gestern waren schon ${DAY_CAP} XP erreicht.` : `Heute sind schon ${DAY_CAP} XP erreicht. Morgen zählt es wieder voll.`)
     : `≈ <b>${Math.min(x, room)} XP</b> · stärkt vor allem <b>${STAT_NAMES[top]}</b>${x > room ? ` · Tageslimit ${DAY_CAP} XP` : ''}`;
 }
 
@@ -2171,13 +2212,13 @@ $('logForm').addEventListener('input', updatePreview);
 $('logForm').addEventListener('change', updatePreview);
 $('logForm').addEventListener('submit', e => {
   e.preventDefault();
-  const v = formVals();
-  const room = Math.max(0, DAY_CAP - (D.dayXp[state.day] || 0));
-  const r = addWorkout(v.type, v.min, v.int, state.day);
+  const v = formVals(), day = entryDay('log');
+  const room = Math.max(0, DAY_CAP - (D.dayXp[day] || 0));
+  const r = addWorkout(v.type, v.min, v.int, day);
   const gained = r.after.xp - r.before.xp;
-  toast(`${TYPES[v.type].label} eingetragen · +${gained} XP${xpOf(v) > room ? ' (Tageslimit)' : ''}`);
+  toast(`${TYPES[v.type].label} ${day < state.day ? 'für gestern ' : ''}eingetragen · +${gained} XP${xpOf(v) > room ? ' (Tageslimit)' : ''}`);
   if (r.item) toast(`Fundstück: ${ITEMS[r.item]}!`);
-  commit();
+  commit(day);
   if (persistStatus === 'off') requestPersist(false); // beim Eintragen still um Speicherschutz bitten
 });
 $('petName').addEventListener('input', e => { state.name = e.target.value.trim() || 'Moro'; save(); render(); });
@@ -2206,20 +2247,43 @@ $('shoePick').addEventListener('click', e => {
   state.shoe = b.dataset.shoe; save(); render(); tick();
 });
 // Wasser, Schlaf, Schritte
-const setHealth = (patch) => { state.health[state.day] = Object.assign({}, hp(state, state.day), patch); commit(); tick(); };
+const setHealth = (patch) => { const d = entryDay('health'); state.health[d] = Object.assign({}, hp(state, d), patch); commit(d); tick(); };
 $('glasses').addEventListener('click', e => {
   const b = e.target.closest('button[data-n]'); if (!b) return;
-  const n = +b.dataset.n, cur = hp(state, state.day).water || 0;
+  const n = +b.dataset.n, cur = hp(state, entryDay('health')).water || 0;
   setHealth({ water: n === cur ? n - 1 : n });
-  if (n === WATER_GOAL && cur < WATER_GOAL) toast(`${state.name} glänzt: Trinkziel erreicht!`);
+  if (n === WATER_GOAL && cur < WATER_GOAL && !back.health) toast(`${state.name} glänzt: Trinkziel erreicht!`);
 });
 $('sleepSeg').addEventListener('click', e => {
   const b = e.target.closest('button[data-v]'); if (!b) return;
-  setHealth({ sleep: hp(state, state.day).sleep === b.dataset.v ? null : b.dataset.v });
+  setHealth({ sleep: hp(state, entryDay('health')).sleep === b.dataset.v ? null : b.dataset.v });
+});
+// Heute / Gestern umschalten
+[['logDaySeg', 'log'], ['healthDaySeg', 'health']].forEach(([id, k]) => $(id).addEventListener('click', e => {
+  const b = e.target.closest('button[data-back]'); if (!b) return;
+  entryDay(k); back[k] = +b.dataset.back;
+  render();
+}));
+// Training aus dem Verlauf löschen (zweimal tippen)
+let delArmed = null;
+$('hist').addEventListener('click', e => {
+  const b = e.target.closest('button[data-del]'); if (!b) return;
+  if (!delArmed || delArmed.id !== b.dataset.del) {
+    if (delArmed) clearTimeout(delArmed.t);
+    $('hist').querySelectorAll('.del.armed').forEach(x => { x.classList.remove('armed'); x.textContent = '×'; });
+    b.classList.add('armed'); b.textContent = 'Löschen?';
+    delArmed = { id: b.dataset.del, t: setTimeout(() => { b.classList.remove('armed'); b.textContent = '×'; delArmed = null; }, 3500) };
+    return;
+  }
+  clearTimeout(delArmed.t); delArmed = null;
+  const w = state.workouts.find(x => x.id === b.dataset.del); if (!w) return;
+  state.workouts = state.workouts.filter(x => x !== w);
+  toast(`${TYPES[w.type].label} (${dayLabel(w.day)}, ${w.min} min) gelöscht`);
+  commit();
 });
 const saveSteps = () => {
   const v = Math.max(0, Math.min(60000, Math.round(+$('steps').value || 0)));
-  const before = stepXp(hp(state, state.day).steps);
+  const before = stepXp(hp(state, entryDay('health')).steps);
   setHealth({ steps: v || null });
   const gained = stepXp(v) - before;
   if (gained > 0) toast(`${v.toLocaleString('de-DE')} Schritte · +${gained} XP`);

@@ -1,3 +1,6 @@
 # Lokale Claude-Einstellungen und erzeugte Vorschau-Kopien
 .claude/
 moro-clean-vorschau.html
+
+# Wird aus moro.html gebaut (lokal mit pwa/build.ps1, beim Veröffentlichen im Workflow)
+pwa/index.html

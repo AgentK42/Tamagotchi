@@ -1,4 +1,4 @@
-# Veröffentlicht den Ordner pwa/ bei jedem Push auf main über GitHub Pages.
+# Baut die PWA aus moro.html und veröffentlicht den Ordner pwa/ bei jedem Push auf main über GitHub Pages.
 # Einmalig nötig: Repository → Settings → Pages → Source: "GitHub Actions".
 name: PWA auf GitHub Pages
 
@@ -24,6 +24,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+      - name: PWA aus moro.html bauen
+        shell: pwsh
+        run: ./pwa/build.ps1
       - name: Werkzeuge nicht mit veröffentlichen
         run: rm -rf pwa/tools pwa/build.ps1
       - uses: actions/configure-pages@v5

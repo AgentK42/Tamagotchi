@@ -2,7 +2,7 @@
 # Aufruf:  pwsh -File pwa/build.ps1
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$c = Get-Content -Raw -Encoding utf8 (Join-Path $root '..\moro.html')
+$c = Get-Content -Raw -Encoding utf8 (Join-Path $root '../moro.html')
 
 if (-not $c.Contains('const REAL_TIME = false;')) { throw 'REAL_TIME-Schalter in moro.html nicht gefunden' }
 $c = $c.Replace('const REAL_TIME = false;', 'const REAL_TIME = true;')
@@ -55,8 +55,8 @@ Set-Content -Encoding utf8 -NoNewline -Path (Join-Path $root 'index.html') -Valu
 
 # Icon-Generator bekommt dieselbe Zeichnung wie die App
 $s = $c.IndexOf('/* ---------- Pixel-Zeichnung'); $e = $c.IndexOf('/* ---------- Zustand & Aktionen')
-$t = Get-Content -Raw -Encoding utf8 (Join-Path $root 'tools\icons-template.html')
-Set-Content -Encoding utf8 -NoNewline -Path (Join-Path $root 'tools\icons.html') -Value $t.Replace('/*DRAW*/', $c.Substring($s, $e - $s))
+$t = Get-Content -Raw -Encoding utf8 (Join-Path $root 'tools/icons-template.html')
+Set-Content -Encoding utf8 -NoNewline -Path (Join-Path $root 'tools/icons.html') -Value $t.Replace('/*DRAW*/', $c.Substring($s, $e - $s))
 
 # Neue Cache-Version, damit installierte Apps das Update laden
 $swf = Join-Path $root 'sw.js'

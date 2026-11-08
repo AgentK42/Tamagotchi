@@ -3,6 +3,8 @@
 ## Erledigt
 
 - **Trinkabfrage:** Gläser Wasser pro Tag (Ziel 6), Moro glänzt bei erreichtem Ziel. Umgesetzt zusammen mit Schlaf und Schritten in der Karte „Heute für dich“.
+- **Korrigieren:** Trainings im Verlauf löschen (zweimal tippen). Sinkt dadurch die Stufe, wird der nächste Aufstieg erneut gefeiert.
+- **Nachtragen:** Training sowie Wasser, Schlaf und Schritte per „Heute / Gestern“ auch für den Vortag. Tagesquest und Wochenziele des Vortags zählen mit, auch über die Wochengrenze.
 
 ## Offen
 
