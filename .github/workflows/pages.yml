@@ -29,7 +29,7 @@ jobs:
         run: ./pwa/build.ps1
       - name: Werkzeuge nicht mit veröffentlichen
         run: rm -rf pwa/tools pwa/build.ps1
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v4
         with:
           path: pwa
