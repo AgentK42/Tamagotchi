@@ -338,6 +338,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .evo-card canvas { width: 180px; aspect-ratio: 1; image-rendering: pixelated; background: var(--stage); border-radius: 16px; }
 .evo-card h2 { font-size: 26px; font-weight: 800; }
 .evo-card .btn.primary { width: auto; padding-inline: 28px; }
+.evo-card .lbl { justify-content: center; }
+.evo-choose { width: 100%; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .toast, .evo-card { animation: none; } .bar > i { transition: none; } }
 /* Aufgeräumte Ansicht (#clean): ohne Prototyp-Steuerung und ohne doppelte Angaben */
 .clean .top, .clean #sampleNote, .clean #styleToggle, .clean .weekdots, .clean .ln em,
@@ -655,8 +657,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
     <h2 id="evoTitle"></h2>
     <p id="evoText"></p>
     <button class="btn primary" id="evoClose" type="button">Weiter</button>
-    <div id="evoChoose" hidden style="width:100%">
-      <p class="lbl" style="margin:4px 0 6px">Ich möchte lieber folgendes Tier:</p>
+    <div id="evoChoose" class="evo-choose" hidden>
+      <p class="lbl" style="margin:0 0 8px">Ich möchte lieber folgendes Tier:</p>
       <div class="pickseg" id="evoPickSeg" role="group" aria-label="Anderes Tier wählen" style="justify-content:center"></div>
     </div>
   </div>
@@ -1915,17 +1917,33 @@ function letterFor(wi) {
   const fact = FACTS.filter(x => x.from <= Math.max(1, trainedWeeks)).pop();
   const p = [];
   const MISS = { aus: 'Ich werde ganz hibbelig, wenn ich an die nächste Runde denke.', kra: 'Ich brumme schon vor Vorfreude vor mich hin.', bew: 'Ich strecke mich schon mal und mache mich geschmeidig.', hyb: 'Ich tigere schon vergnügt herum.' };
+  const avgW = water.length ? water.reduce((a, b) => a + b, 0) / water.length : 0;
+  const glasses = String(avgW.toFixed(1)).replace('.', ',');
   if (!ws.length) {
-    p.push('Diese Woche war ruhig. Das ist in Ordnung, Pausen gehören dazu.');
-    p.push(`${MISS[D.line] || 'Ich vermisse unsere Einheiten ein bisschen.'} Ich freue mich schon darauf, wieder mit dir zu trainieren.`);
-    if (water.length) p.push(`Im Schnitt hast du ${(water.reduce((a, b) => a + b, 0) / water.length).toFixed(1).replace('.', ',')} Gläser Wasser am Tag getrunken.`);
+    p.push('Diese Woche haben wir eine Pause gemacht, und das ist völlig in Ordnung. Alles, was wir uns zusammen aufgebaut haben, ist noch da.');
+    p.push(`${MISS[D.line] || 'Ich vermisse unsere Einheiten ein bisschen.'} Eine kurze Runde reicht schon, und wir sind wieder mittendrin.`);
+    if (water.length) p.push(`Schön, dass du trotzdem ans Trinken gedacht hast: im Schnitt ${glasses} Gläser am Tag.`);
+    p.push('Ich glaube an dich. Bis ganz bald!');
     return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', 0], ['Zeit', fmtMin(0)], ['XP', xpW]] };
   }
-  p.push(`Du hast diese Woche ${ws.length}-mal trainiert, zusammen ${fmtMin(mins)}. Am meisten ${TYPES[fav[0]].label}.`);
-  if (wi > 0 && ws.length) p.push(ws.length > prev.length ? `Das ${ws.length - prev.length === 1 ? 'ist eine Einheit' : `sind ${ws.length - prev.length} Einheiten`} mehr als letzte Woche.` : ws.length === prev.length ? 'Genauso oft wie letzte Woche. Schön beständig.' : 'Etwas weniger als letzte Woche, aber jede Einheit zählt.');
-  if (water.length) p.push(`Im Schnitt hast du ${(water.reduce((a, b) => a + b, 0) / water.length).toFixed(1).replace('.', ',')} Gläser Wasser am Tag getrunken.`);
-  p.push(`In deinem Körper passiert gerade: ${fact.title}. ${fact.text.split('. ')[0]}.`);
-  p.push(`Ich bin dadurch ${xpW} XP gewachsen. Bis nächste Woche!`);
+  // Einstieg: je nachdem, ob das Trainingsziel der Woche erreicht ist
+  const fl = `beim ${TYPES[fav[0]].label}`;
+  p.push(ws.length >= GOAL_N
+    ? `Was für eine Woche! ${ws.length}-mal waren wir zusammen unterwegs, ${fmtMin(mins)} lang, am liebsten ${fl}. Ich habe jede Minute genossen.`
+    : `Diese Woche hast du dir Zeit für uns genommen: ${fmtMin(mins)} ${fl}. Genau solche Einheiten bringen uns Schritt für Schritt weiter.`);
+  const diff = ws.length - prev.length;
+  p.push(wi === 0 ? 'Unsere erste gemeinsame Woche ist geschafft. Der Anfang ist das Schwerste, und den hast du gemeistert.'
+    : diff > 0 ? `Das ${diff === 1 ? 'ist sogar eine Einheit' : `sind sogar ${diff} Einheiten`} mehr als letzte Woche. Ich bin richtig stolz auf dich!`
+    : diff === 0 ? 'Genauso oft wie letzte Woche. So wird aus Training eine Gewohnheit, die bleibt.'
+    : 'Du bist drangeblieben, und darauf kommt es an. Jede Einheit zählt.');
+  const wg = weekGoals(s, wi), wgDone = wg.filter(g => g.done).length;
+  if (wgDone === wg.length) p.push('Und du hast alle Wochenziele geschafft. Einfach großartig!');
+  else if (wgDone >= 2) p.push(`${wgDone} von ${wg.length} Wochenzielen hast du geschafft. Eine richtig starke Basis!`);
+  if (water.length) p.push(avgW >= WATER_GOAL
+    ? `Ans Trinken hast du auch gedacht: im Schnitt ${glasses} Gläser am Tag. Davon glänze ich!`
+    : `Im Schnitt ${glasses} Gläser Wasser am Tag. Ein Glas mehr, und ich glänze für dich.`);
+  p.push(`${trainedWeeks < 12 ? 'Auch wenn man es von außen noch nicht sieht, dein Körper baut schon um.' : 'Jetzt zeigt dein Körper, was du geleistet hast.'} ${fact.text.split('. ')[0]}.`);
+  p.push(`Dank dir bin ich diese Woche um ${xpW} XP gewachsen. ${['Ich freue mich schon auf unsere nächste Runde!', 'Weiter so, ich bin an deiner Seite!', 'Auf eine starke nächste Woche!'][wi % 3]}`);
   return { title: `Woche ${wi + 1}`, paras: p, sign: n, stats: [['Trainings', ws.length], ['Zeit', fmtMin(mins)], ['XP', xpW]] };
 }
 let pendingLetter = null, letterOpen = false;
