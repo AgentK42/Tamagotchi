@@ -1,5 +1,7 @@
 # Backlog: Moro Trainingsbegleiter
 
+Preis und Aufteilung kostenlos / Moro Plus: siehe [MORO-PLUS.md](MORO-PLUS.md).
+
 ## Erledigt
 
 - **Trinkabfrage:** Gläser Wasser pro Tag (Ziel 6), Moro glänzt bei erreichtem Ziel. Umgesetzt zusammen mit Schlaf und Schritten in der Karte „Heute für dich“.
