@@ -4,7 +4,7 @@ Dieselbe App wie das Artefakt `moro.html`, aber als installierbare Web-App:
 
 - **Echte Tage statt Simulation:** Der Tag ergibt sich aus dem Startdatum. Es gibt keine Knöpfe „Tag weiter“ oder „Woche vorspulen“ und keine Beispieldaten. Moro startet als Ei.
 - **Aufgeräumte Ansicht:** Ohne Prototyp-Steuerung, Darkmode, Highres-Grafik. Im Verlauf stehen Datumsangaben statt „Tag 19“.
-- **Offline:** Ein Service Worker speichert die App. Nach dem ersten Öffnen funktioniert sie ohne Internet.
+- **Offline:** Ein Service Worker speichert die App. Nach dem ersten Öffnen startet sie immer sofort aus dem Speicher, auch ohne Internet oder bei schlechtem Netz. Updates lädt sie im Hintergrund und zeigt sie beim nächsten Zurückkehren in die App.
 - **Daten:** Bleiben nur auf dem Gerät (im Browser-Speicher). Kein Konto, kein Server.
 
 ## Dateien

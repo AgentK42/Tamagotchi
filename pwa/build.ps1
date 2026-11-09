@@ -46,7 +46,14 @@ img { max-width: 100%; }
 
 $sw = @'
 <script>
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  // Die App startet aus dem Cache. Wurde im Hintergrund eine neue Version installiert,
+  // wird sie beim nächsten Zurückkehren in die App geladen (die Daten liegen im Browser-Speicher).
+  const hadController = !!navigator.serviceWorker.controller; let updateReady = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) updateReady = true; });
+  document.addEventListener('visibilitychange', () => { if (updateReady && document.visibilityState === 'visible') location.reload(); });
+}
 </script>
 '@
 

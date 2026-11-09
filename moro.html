@@ -1778,14 +1778,22 @@ document.querySelectorAll('#styleToggle button').forEach(b => b.addEventListener
 function look(stage, overrides = {}) {
   return Object.assign({ stage, line: D.line, lean: D.lean, face: D.mood.face, norm: D.norm, items: state.items.map(i => i.id).filter(id => !state.hidden[id]), count: D.count, shine: D.shine, master: stage === 4 ? D.master : 0, bottle: bottleKey(state), cup: state.cup === 'becher' ? 'becher' : 'flasche', shoe: shoeKey(state) }, overrides);
 }
-function toast(msg, warn = false) {
+// Meldungen: höchstens drei gleichzeitig. Weitere warten in einer Schlange und rücken nach, sobald eine verschwindet.
+// So geht bei vielen Erfolgen auf einmal (Training, Wochenziel, Rekord, Fundstück) keine Meldung verloren.
+const TOAST_MAX = 3, toastQueue = [];
+function showToast(msg, warn) {
   const el = document.createElement('div'); el.className = 'toast' + (warn ? ' warn' : ''); el.textContent = msg;
   if (warn) el.setAttribute('role', 'alert');
   $('toasts').appendChild(el);
-  setTimeout(() => el.remove(), warn ? 9000 : 3600);
-  // Höchstens drei Meldungen; Warnungen werden nicht verdrängt
-  const box = $('toasts');
-  while (box.children.length > 3) ([...box.children].find(c => !c.classList.contains('warn')) || box.firstChild).remove();
+  // Wartet noch etwas, verschwinden Meldungen etwas schneller
+  setTimeout(() => { el.remove(); nextToast(); }, warn ? 9000 : toastQueue.length ? 2800 : 3600);
+}
+function nextToast() {
+  while (toastQueue.length && $('toasts').children.length < TOAST_MAX) showToast(toastQueue.shift(), false);
+}
+function toast(msg, warn = false) {
+  if (warn) { showToast(msg, true); return; } // Warnungen sofort, auch über das Limit hinaus
+  toastQueue.push(msg); nextToast();
 }
 function rollItem(day, force, chance = .35) {
   const owned = new Set(state.items.map(i => i.id));
