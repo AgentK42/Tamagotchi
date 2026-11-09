@@ -30,8 +30,7 @@ function drawPet(ctx, L, f) {
   const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
   const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
   const cx = 20 + (L.face === 'restless' && L.stage > 0 ? [0, 1, 0, -1][f % 4] : 0), ground = 34;
-  ctx.fillStyle = 'rgba(19,26,44,.18)';
-  ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1);
+  if (!L.noShadow) { ctx.fillStyle = 'rgba(19,26,44,.18)'; ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1); }
 
   const shape = (rx, ry, egg) => (x, y) => { const r = (egg && y < 0) ? rx * .8 : rx; return (x * x) / (r * r) + (y * y) / (ry * ry) <= 1.1; };
   const blob = (ox, oy, rx, ry, c, egg, noHi) => {
@@ -251,7 +250,7 @@ function drawPet(ctx, L, f) {
   if (kind === 'kra' || kind === 'hyb') for (let y = -1; y <= 1; y++) for (let x = -3; x <= 3; x++) if (x * x / 9 + y * y / 2.2 <= 1) P(cx + x, my + y, c.belly);
   eyes.forEach((x, i) => {
     if (face === 'happy') { P(x - 1, ey + 1, DARK); P(x, ey, DARK); P(x + 1, ey, DARK); P(x + 2, ey + 1, DARK); }
-    else if (face === 'sleep') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
+    else if (face === 'sleep' || face === 'rest') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
     else if (blink) R(x, ey + eh - 1, 2, 1, DARK);
     else {
       R(x, ey, 2, eh, DARK); P(x, ey, WHITE);
@@ -259,7 +258,7 @@ function drawPet(ctx, L, f) {
       if (face === 'sad') { const l = i === 0; P(l ? x : x + 1, ey - 1, DARK); P(l ? x + 1 : x, ey - 2, DARK); }
     }
   });
-  if (face === 'happy' || face === 'content') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
+  if (face === 'happy' || face === 'content' || face === 'rest') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
   if (kind === 'kra') R(cx - 1, my - 1, 3, 1, c.nose);
   else if (kind !== 'moro') P(cx, my - 1, c.nose);
   if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
@@ -268,7 +267,7 @@ function drawPet(ctx, L, f) {
   else if (face === 'sleep') P(cx, my, DARK);
   else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
   else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
-  else if (face === 'content' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
+  else if (face === 'content' || face === 'rest' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
   else P(cx, my, DARK);
   if (kind === 'bew') { R(cx - rx - 2, my - 1, 2, 1, c.out); R(cx - rx - 2, my + 1, 2, 1, c.out); R(cx + rx + 1, my - 1, 2, 1, c.out); R(cx + rx + 1, my + 1, 2, 1, c.out); }
   if (items.has('medaille') && st >= 3) { // Band von den Seiten bis zur Medaille unten am Bauch
@@ -360,7 +359,7 @@ function drawPetHi(ctx, L, f) {
   const items = new Set(L.items || []);
   const face = L.face;
   const up = face === 'happy' && f % 4 < 2;
-  const shadow = w0 => {
+  const shadow = w0 => { if (L.noShadow) return;
     ctx.fillStyle = 'rgba(19,26,44,.16)';
     [.9, 1, .93, .7].forEach((s, i) => { const w = w0 * s * (up ? .82 : 1) * k; ctx.fillRect(Math.round(60 * k - w / 2), (108 + i) * k, Math.round(w), k); });
   };
@@ -627,7 +626,7 @@ function drawPetHi(ctx, L, f) {
     [-1, 1].forEach(s => {
       const x = cx + s * ex;
       if (face === 'happy') { line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK); return; }
-      if (face === 'sleep' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
+      if (face === 'sleep' || face === 'rest' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
       if (v === 1) { // Mandelaugen mit grüner Iris und Lidstrich
         spot(x, ey, 5.2, 4.8, DK); spot(x, ey + .3, 4.1, 3.8, '#6FB33A'); spot(x, ey + 1.7, 3.1, 1.7, '#A6DB68');
         spot(x, ey + .2, 1.2, 3.3, DK);
@@ -644,7 +643,7 @@ function drawPetHi(ctx, L, f) {
       if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
     });
     if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
-    if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+    if (face === 'happy' || face === 'content' || face === 'rest') [-1, 1].forEach(s => {
       const bx = cx + s * Math.max(ex + 8, rx * .72);
       spot(bx, ey + 11, v === 2 ? 5 : 4, v === 2 ? 2.6 : 2, '#FF9DB0');
       if (v === 2) [-2, 0, 2].forEach(d => line([[bx + d - .8, ey + 12], [bx + d + .8, ey + 10]], .35, '#F0708C'));
@@ -683,7 +682,7 @@ function drawPetHi(ctx, L, f) {
   [-1, 1].forEach(s => {
     const x = cx + s * ex;
     if (face === 'happy') line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK);
-    else if (face === 'sleep' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
+    else if (face === 'sleep' || face === 'rest' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
     else {
       spot(x, ey, eRx, eRy, DK);
       spot(x - 1.4, ey - 2.2, 1.9, 1.9, '#FFFFFF');
@@ -692,7 +691,7 @@ function drawPetHi(ctx, L, f) {
     }
   });
   if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
-  if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+  if (face === 'happy' || face === 'content' || face === 'rest') [-1, 1].forEach(s => {
     const bx = cx + s * Math.max(ex + 8, rx * .72);
     spot(bx, ey + 11, face === 'happy' ? 5.3 : 4.4, face === 'happy' ? 2.7 : 2.2, '#FF9DB0');
     spot(bx - 1, ey + 10.5, 1.5, .8, '#FFC4CF');

@@ -976,7 +976,7 @@ function derive(s) {
   if (s.paused) mood = { key: 'pause', label: 'Pause', face: 'sleep', text: `${n} schläft und hält deinen Fortschritt fest, bis du wieder loslegst.` };
   else if (gap === null) mood = { key: 'new', label: 'Wartet', face: 'neutral', text: 'Trag dein erstes Training ein, dann fängt das Ei an zu wackeln. Beim zweiten schlüpft es.' };
   else if (gap === 0) mood = { key: 'proud', label: 'Stolz', face: 'happy', text: stage === 0 ? 'Es wackelt! Da drin tut sich was.' : `Heute trainiert. ${n} hüpft vor Stolz.` };
-  else if (gap === 1) mood = { key: 'rest', label: 'Erholt sich', face: 'content', text: 'Ruhetag. Muskeln wachsen in der Pause, nicht beim Training. Morgen geht es weiter.' };
+  else if (gap === 1) mood = { key: 'rest', label: 'Erholt sich', face: 'rest', text: 'Ruhetag. Muskeln wachsen in der Pause, nicht beim Training. Morgen geht es weiter.' };
   else if (gap === 2) mood = { key: 'ready', label: 'Bereit', face: 'neutral', text: `${n} ist ausgeruht und bereit für die nächste Einheit.` };
   else if (gap === 3) mood = { key: 'restless', label: 'Rastlos', face: 'restless', text: `${n} tippelt herum und wartet auf die nächste Einheit.` };
   else mood = { key: 'tired', label: 'Schlapp', face: 'sad', text: `${n} ist schlapp, aber nicht verloren. Eine kurze Einheit reicht, um es aufzuwecken.` };
@@ -1013,8 +1013,7 @@ function drawPet(ctx, L, f) {
   const P = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
   const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
   const cx = 20 + (L.face === 'restless' && L.stage > 0 ? [0, 1, 0, -1][f % 4] : 0), ground = 34;
-  ctx.fillStyle = 'rgba(19,26,44,.18)';
-  ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1);
+  if (!L.noShadow) { ctx.fillStyle = 'rgba(19,26,44,.18)'; ctx.fillRect(cx - 7, ground, 14, 1); ctx.fillRect(cx - 5, ground + 1, 10, 1); }
 
   const shape = (rx, ry, egg) => (x, y) => { const r = (egg && y < 0) ? rx * .8 : rx; return (x * x) / (r * r) + (y * y) / (ry * ry) <= 1.1; };
   const blob = (ox, oy, rx, ry, c, egg, noHi) => {
@@ -1234,7 +1233,7 @@ function drawPet(ctx, L, f) {
   if (kind === 'kra' || kind === 'hyb') for (let y = -1; y <= 1; y++) for (let x = -3; x <= 3; x++) if (x * x / 9 + y * y / 2.2 <= 1) P(cx + x, my + y, c.belly);
   eyes.forEach((x, i) => {
     if (face === 'happy') { P(x - 1, ey + 1, DARK); P(x, ey, DARK); P(x + 1, ey, DARK); P(x + 2, ey + 1, DARK); }
-    else if (face === 'sleep') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
+    else if (face === 'sleep' || face === 'rest') { const b = ey + eh - 1; P(x - 1, b - 1, DARK); P(x, b, DARK); P(x + 1, b, DARK); P(x + 2, b - 1, DARK); }
     else if (blink) R(x, ey + eh - 1, 2, 1, DARK);
     else {
       R(x, ey, 2, eh, DARK); P(x, ey, WHITE);
@@ -1242,7 +1241,7 @@ function drawPet(ctx, L, f) {
       if (face === 'sad') { const l = i === 0; P(l ? x : x + 1, ey - 1, DARK); P(l ? x + 1 : x, ey - 2, DARK); }
     }
   });
-  if (face === 'happy' || face === 'content') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
+  if (face === 'happy' || face === 'content' || face === 'rest') { R(cx - ex - 2, ey + eh, 2, 1, BLUSH); R(cx + ex + 1, ey + eh, 2, 1, BLUSH); }
   if (kind === 'kra') R(cx - 1, my - 1, 3, 1, c.nose);
   else if (kind !== 'moro') P(cx, my - 1, c.nose);
   if (face === 'happy') { R(cx - 1, my, 3, 2, '#5A2236'); P(cx, my + 1, '#FF7FA0'); }
@@ -1251,7 +1250,7 @@ function drawPet(ctx, L, f) {
   else if (face === 'sleep') P(cx, my, DARK);
   else if (face === 'restless') R(cx - 1, my, 3, 1, DARK);
   else if (kind === 'aus' || kind === 'bew' || kind === 'hyb') { P(cx - 2, my, DARK); P(cx - 1, my + 1, DARK); P(cx, my, DARK); P(cx + 1, my + 1, DARK); P(cx + 2, my, DARK); }
-  else if (face === 'content' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
+  else if (face === 'content' || face === 'rest' || kind === 'kra') { P(cx - 1, my, DARK); P(cx, my + 1, DARK); P(cx + 1, my, DARK); }
   else P(cx, my, DARK);
   if (kind === 'bew') { R(cx - rx - 2, my - 1, 2, 1, c.out); R(cx - rx - 2, my + 1, 2, 1, c.out); R(cx + rx + 1, my - 1, 2, 1, c.out); R(cx + rx + 1, my + 1, 2, 1, c.out); }
   if (items.has('medaille') && st >= 3) { // Band von den Seiten bis zur Medaille unten am Bauch
@@ -1343,7 +1342,7 @@ function drawPetHi(ctx, L, f) {
   const items = new Set(L.items || []);
   const face = L.face;
   const up = face === 'happy' && f % 4 < 2;
-  const shadow = w0 => {
+  const shadow = w0 => { if (L.noShadow) return;
     ctx.fillStyle = 'rgba(19,26,44,.16)';
     [.9, 1, .93, .7].forEach((s, i) => { const w = w0 * s * (up ? .82 : 1) * k; ctx.fillRect(Math.round(60 * k - w / 2), (108 + i) * k, Math.round(w), k); });
   };
@@ -1610,7 +1609,7 @@ function drawPetHi(ctx, L, f) {
     [-1, 1].forEach(s => {
       const x = cx + s * ex;
       if (face === 'happy') { line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK); return; }
-      if (face === 'sleep' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
+      if (face === 'sleep' || face === 'rest' || blink) { line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK); return; }
       if (v === 1) { // Mandelaugen mit grüner Iris und Lidstrich
         spot(x, ey, 5.2, 4.8, DK); spot(x, ey + .3, 4.1, 3.8, '#6FB33A'); spot(x, ey + 1.7, 3.1, 1.7, '#A6DB68');
         spot(x, ey + .2, 1.2, 3.3, DK);
@@ -1627,7 +1626,7 @@ function drawPetHi(ctx, L, f) {
       if (face === 'sad') line([[x + s * 4, ey - 7.5], [x - s * 3.5, ey - 9.5]], .8, DK);
     });
     if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
-    if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+    if (face === 'happy' || face === 'content' || face === 'rest') [-1, 1].forEach(s => {
       const bx = cx + s * Math.max(ex + 8, rx * .72);
       spot(bx, ey + 11, v === 2 ? 5 : 4, v === 2 ? 2.6 : 2, '#FF9DB0');
       if (v === 2) [-2, 0, 2].forEach(d => line([[bx + d - .8, ey + 12], [bx + d + .8, ey + 10]], .35, '#F0708C'));
@@ -1666,7 +1665,7 @@ function drawPetHi(ctx, L, f) {
   [-1, 1].forEach(s => {
     const x = cx + s * ex;
     if (face === 'happy') line([[x - 5, ey + 2.6], [x - 2.5, ey + .6], [x, ey], [x + 2.5, ey + .6], [x + 5, ey + 2.6]], .95, DK);
-    else if (face === 'sleep' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
+    else if (face === 'sleep' || face === 'rest' || blink) line([[x - 4.6, ey + 1], [x - 2, ey + 2.8], [x + 2, ey + 2.8], [x + 4.6, ey + 1]], .9, DK);
     else {
       spot(x, ey, eRx, eRy, DK);
       spot(x - 1.4, ey - 2.2, 1.9, 1.9, '#FFFFFF');
@@ -1675,7 +1674,7 @@ function drawPetHi(ctx, L, f) {
     }
   });
   if (face === 'sad') spot(cx - ex + 2, ey + 8, 1.6, 2.4, '#7FC4FF');
-  if (face === 'happy' || face === 'content') [-1, 1].forEach(s => {
+  if (face === 'happy' || face === 'content' || face === 'rest') [-1, 1].forEach(s => {
     const bx = cx + s * Math.max(ex + 8, rx * .72);
     spot(bx, ey + 11, face === 'happy' ? 5.3 : 4.4, face === 'happy' ? 2.7 : 2.2, '#FF9DB0');
     spot(bx - 1, ey + 10.5, 1.5, .8, '#FFC4CF');
@@ -2562,6 +2561,111 @@ $('bkReset').addEventListener('click', e => {
   toast('Alles zurückgesetzt. Ein neues Ei liegt bereit.');
 });
 
+/* ---------- Ruhetag-Szenen ---------- */
+// Am Ruhetag erholt sich jedes Tier auf seine Art (ab der Baby-Stufe, nach Linie bzw. Tendenz):
+// Hase liegt auf der Matte, Bär sitzt beim Honigtopf, Katze rollt sich aufs Kissen, Tiger schaukelt in der Hängematte.
+// Gezeichnet wird immer in 240er-Koordinaten; im Retro-Stil wird das Ergebnis auf 40 × 40 Pixel verkleinert.
+const RS = 240, REST_DROP = ['flasche', 'handtuch', 'hantel']; // Dinge am Boden passen nicht in die Ruhe-Posen
+const restSprite = document.createElement('canvas'), restComp = document.createElement('canvas');
+restComp.width = restComp.height = RS;
+const restBoxes = new Map();
+const isRestPose = () => D && D.mood.key === 'rest' && D.stage >= 1;
+// Umriss der gezeichneten Figur (für die Platzierung), in 240er-Koordinaten
+function spriteBox(cv, key) {
+  if (restBoxes.has(key)) return restBoxes.get(key);
+  const n = cv.width, d = cv.getContext('2d').getImageData(0, 0, n, n).data, s = RS / n;
+  let x0 = n, y0 = n, x1 = 0, y1 = 0;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (d[(y * n + x) * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const b = { x0: x0 * s, x1: (x1 + 1) * s, y0: y0 * s, y1: (y1 + 1) * s }; b.cx = (b.x0 + b.x1) / 2; b.cy = (b.y0 + b.y1) / 2; b.w = b.x1 - b.x0; b.h = b.y1 - b.y0;
+  restBoxes.set(key, b); return b;
+}
+const restBreath = (t, ms = 2800) => Math.sin(t / ms * Math.PI * 2);
+const rsShadow = (ctx, x, y, w, a = .18) => { ctx.fillStyle = `rgba(8,12,24,${a})`; ctx.beginPath(); ctx.ellipse(x, y, w, 7, 0, 0, 7); ctx.fill(); };
+const REST_SCENES = {
+  // Hase: liegt lang auf der Yogamatte, der Bauch hebt und senkt sich
+  aus(ctx, t, img, b, G) {
+    ctx.fillStyle = '#245E58'; ctx.fillRect(14, G - 6, 212, 14);
+    ctx.fillStyle = '#3E8E7E'; ctx.fillRect(14, G - 6, 212, 4);
+    ctx.fillStyle = '#2F766B'; for (let x = 30; x < 220; x += 24) ctx.fillRect(x, G - 2, 10, 2);
+    const s = Math.min(.9, 200 / b.h), br = restBreath(t, 3000);
+    ctx.save(); ctx.translate(120, G - 6); ctx.scale(1, 1 + br * .03); ctx.translate(-120, -(G - 6));
+    ctx.translate(120, G - 6 - b.w * s / 2); ctx.rotate(-Math.PI / 2); ctx.scale(s, s); ctx.translate(-b.cx, -b.cy);
+    ctx.drawImage(img, 0, 0, RS, RS); ctx.restore();
+  },
+  // Bär: sitzt neben dem Honigtopf, beugt sich ab und zu hinüber, ein Herz steigt auf
+  kra(ctx, t, img, b, G) {
+    const cyc = t % 5200, lean = cyc < 3600 ? 0 : Math.sin((cyc - 3600) / 1600 * Math.PI), br = restBreath(t);
+    rsShadow(ctx, 88, G, 52);
+    const x = 200; // Honigtopf
+    rsShadow(ctx, x, G, 22);
+    ctx.fillStyle = '#7A4A16'; ctx.beginPath(); ctx.roundRect(x - 20, G - 40, 40, 42, 10); ctx.fill();
+    ctx.fillStyle = '#E8A33A'; ctx.beginPath(); ctx.roundRect(x - 17, G - 37, 34, 36, 8); ctx.fill();
+    ctx.fillStyle = '#F6C55E'; ctx.fillRect(x - 13, G - 33, 5, 24);
+    ctx.fillStyle = '#FFE7A8'; ctx.fillRect(x - 17, G - 26, 34, 10);
+    ctx.fillStyle = '#B5651D'; ctx.fillRect(x - 6, G - 23, 12, 4);
+    ctx.fillStyle = '#C77A2A'; ctx.fillRect(x - 21, G - 46, 42, 8);
+    ctx.fillStyle = '#E8A33A'; ctx.fillRect(x - 21, G - 46, 42, 3);
+    const drip = Math.round((t % 2600) / 2600 * 10);
+    ctx.fillStyle = '#F2B13E'; ctx.fillRect(x + 10, G - 38, 5, 6 + drip); ctx.fillRect(x + 9, G - 32 + drip, 7, 5);
+    const s = Math.min(.86, 150 / b.w);
+    ctx.save(); ctx.translate(88, G); ctx.rotate(lean * .1); ctx.scale(s * (1 - br * .012), s * (1 + br * .022)); ctx.translate(-b.cx, -b.y1);
+    ctx.drawImage(img, 0, 0, RS, RS); ctx.restore();
+    if (cyc > 3800) { // Herz
+      const a = Math.min(1, (5200 - cyc) / 500), hx = 158, hy = 86 - (cyc - 3800) / 40;
+      ctx.globalAlpha = a; ctx.fillStyle = '#FF7FA0';
+      [[1, 0, 2], [4, 0, 2], [0, 1, 7], [0, 2, 7], [1, 3, 5], [2, 4, 3], [3, 5, 1]].forEach(([dx, dy, w]) => ctx.fillRect(hx + dx * 3, hy + dy * 3, w * 3, 3));
+      ctx.globalAlpha = 1;
+    }
+  },
+  // Katze: eingerollt auf dem Kissen, Wollknäuel davor
+  bew(ctx, t, img, b, G) {
+    ctx.fillStyle = 'rgba(8,12,24,.2)'; ctx.beginPath(); ctx.ellipse(120, G + 3, 100, 9, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#4B3A86'; ctx.beginPath(); ctx.ellipse(120, G - 6, 102, 20, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#7A5BC7'; ctx.beginPath(); ctx.ellipse(120, G - 9, 96, 16, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#9C7FE0'; ctx.beginPath(); ctx.ellipse(104, G - 14, 60, 6, 0, 0, 7); ctx.fill();
+    const s = Math.min(1, 180 / b.w), br = restBreath(t, 3200);
+    ctx.save(); ctx.translate(120, G - 12); ctx.scale(s * (1.04 - br * .012), s * (.74 + br * .02)); ctx.translate(-b.cx, -b.y1);
+    ctx.drawImage(img, 0, 0, RS, RS); ctx.restore();
+    const x = 30, y = G - 2; // Wollknäuel
+    ctx.fillStyle = '#C24D6E'; ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fill();
+    ctx.fillStyle = '#E86A8A'; ctx.beginPath(); ctx.arc(x - 2, y - 2, 10, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#FFB3C6'; ctx.lineWidth = 2;
+    [[-6, -8, 6, 8], [-9, 0, 4, -9], [-3, 9, 9, -2]].forEach(([a, c, e, g]) => { ctx.beginPath(); ctx.moveTo(x + a, y + c); ctx.lineTo(x + e, y + g); ctx.stroke(); });
+  },
+  // Tiger: sitzt in der Hängematte und schaukelt sanft
+  hyb(ctx, t, img, b, G, hi) {
+    const sw = Math.sin(t / 3400 * Math.PI * 2) * .05, br = restBreath(t);
+    rsShadow(ctx, 120 + sw * 260, G, 60, .16);
+    const arc = (yEnd, yTop, yBot, x0, x1, col) => {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x0, yEnd); ctx.quadraticCurveTo(120, 2 * yTop - yEnd, x1, yEnd);
+      ctx.lineTo(x1, yEnd + 8); ctx.quadraticCurveTo(120, 2 * yBot - yEnd - 8, x0, yEnd + 8); ctx.closePath(); ctx.fill();
+    };
+    ctx.save(); ctx.translate(120, -30); ctx.rotate(sw); ctx.translate(-120, 30);
+    ctx.strokeStyle = '#8C6B45'; ctx.lineWidth = hi ? 3 : 6;
+    [[-12, -30, 30, 128], [252, -30, 210, 128]].forEach(([a, c, e, g]) => { ctx.beginPath(); ctx.moveTo(a, c); ctx.lineTo(e, g); ctx.stroke(); });
+    arc(128, 150, 166, 30, 210, '#7A3F22');
+    const s = Math.min(.74, 130 / b.w);
+    ctx.save(); ctx.translate(120, 198); ctx.scale(s, s * (1 + br * .02)); ctx.translate(-(b.cx - b.w * .05), -b.y1);
+    ctx.drawImage(img, 0, 0, RS, RS); ctx.restore();
+    arc(132, 182, 200, 26, 214, '#B8673A'); arc(132, 182, 194, 26, 214, '#E8C170'); arc(132, 182, 188, 26, 214, '#D9874A');
+    ctx.fillStyle = '#F3D898'; for (let i = 0; i < 7; i++) { const u = .12 + i * .126, px = 26 + 188 * u, py = 140 + (1 - (2 * u - 1) ** 2) * 50; ctx.fillRect(px - 2, py - 2, 4, 4); }
+    ctx.fillStyle = '#8C6B45'; ctx.fillRect(24, 128, 8, 14); ctx.fillRect(208, 128, 8, 14);
+    ctx.restore();
+  },
+};
+function drawRest(cv, L, t) {
+  const hi = isHi(), n = hi ? HI_N : 40;
+  if (cv.width !== n) { cv.width = n; cv.height = n; }
+  const SL = Object.assign({}, L, { face: 'rest', noShadow: true, items: L.items.filter(i => !REST_DROP.includes(i)) });
+  drawInto(restSprite, SL, 1, true); // gezeichnete Figur, zwischengespeichert
+  const b = spriteBox(restSprite, (hi ? 'h' : 'r') + JSON.stringify(SL));
+  const scene = REST_SCENES[L.line || L.lean] || REST_SCENES.aus;
+  const ctx = (hi ? cv : restComp).getContext('2d');
+  ctx.clearRect(0, 0, RS, RS); ctx.imageSmoothingEnabled = false;
+  scene(ctx, t, restSprite, b, Math.round(b.y1 + 5), hi);
+  if (!hi) { const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 40, 40); c.drawImage(restComp, 0, 0, 40, 40); }
+}
+
 /* ---------- Animation ---------- */
 let frame = 0;
 const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2580,7 +2684,10 @@ function tick(auto = false) {
     lastStill = k;
   }
   const f = reduce ? 1 : frame++;
-  if (pet) drawInto($('petCanvas'), L, f);
+  if (pet) {
+    if (isRestPose()) drawRest($('petCanvas'), L, reduce ? 1200 : performance.now());
+    else drawInto($('petCanvas'), L, f);
+  }
   if (evoOpen) drawInto($('evoCanvas'), look(D.stage, { face: 'happy' }), f);
 }
 
