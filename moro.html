@@ -2562,7 +2562,8 @@ $('bkReset').addEventListener('click', e => {
 });
 
 /* ---------- Ruhetag-Szenen ---------- */
-// Am Ruhetag erholt sich jedes Tier auf seine Art (ab der Baby-Stufe, nach Linie bzw. Tendenz):
+// Am Ruhetag atmen Baby und Kind ruhig, und kleine Funken steigen auf.
+// Ab Teen erholt sich jedes Tier auf seine Art (nach Linie):
 // Hase liegt auf der Matte, Bär sitzt beim Honigtopf, Katze rollt sich aufs Kissen, Tiger schaukelt in der Hängematte.
 // Gezeichnet wird immer in 240er-Koordinaten; im Retro-Stil wird das Ergebnis auf 40 × 40 Pixel verkleinert.
 const RS = 240, REST_DROP = ['flasche', 'handtuch', 'hantel']; // Dinge am Boden passen nicht in die Ruhe-Posen
@@ -2632,6 +2633,24 @@ const REST_SCENES = {
     ctx.strokeStyle = '#FFB3C6'; ctx.lineWidth = 2;
     [[-6, -8, 6, 8], [-9, 0, 4, -9], [-3, 9, 9, -2]].forEach(([a, c, e, g]) => { ctx.beginPath(); ctx.moveTo(x + a, y + c); ctx.lineTo(x + e, y + g); ctx.stroke(); });
   },
+  // Baby und Kind (noch kein festes Tier): atmet ruhig, kleine Funken steigen auf
+  funken(ctx, t, img, b, G, hi) {
+    const br = restBreath(t, 2600), y = b.y1;
+    rsShadow(ctx, b.cx, y + 2, b.w * .42 * (1 - br * .03));
+    ctx.save(); ctx.translate(b.cx, y); ctx.scale(1 - br * .012, 1 + br * .025); ctx.translate(-b.cx, -y);
+    ctx.drawImage(img, 0, 0, RS, RS); ctx.restore();
+    const period = 2400, every = 650, x0 = b.x0 + b.w * .1, x1 = b.x1 - b.w * .1, y0 = b.y0 + b.h * .35, y1 = b.y1 - 6;
+    for (let i = Math.floor((t - period) / every); i <= Math.floor(t / every); i++) {
+      const age = t - i * every; if (age < 0 || age > period) continue;
+      const r = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, r2 = Math.abs(Math.sin(i * 78.233) * 12543.1) % 1, p = age / period;
+      const x = Math.round(x0 + r * (x1 - x0) + Math.sin(p * 6 + i) * 3), sy = Math.round(y0 + r2 * (y1 - y0) - p * 70);
+      const s = hi ? (r2 < .3 ? 2 : 3) : 6; // im Retro-Stil ein Pixel nach dem Verkleinern
+      ctx.globalAlpha = p < .2 ? p / .2 : p > .7 ? (1 - p) / .3 : 1;
+      ctx.fillStyle = i % 3 === 0 ? '#FFD86B' : '#7BE0A0';
+      ctx.fillRect(x - s * 1.5, sy - s / 2, s * 3, s); ctx.fillRect(x - s / 2, sy - s * 1.5, s, s * 3);
+    }
+    ctx.globalAlpha = 1;
+  },
   // Tiger: sitzt in der Hängematte und schaukelt sanft
   hyb(ctx, t, img, b, G, hi) {
     const sw = Math.sin(t / 3400 * Math.PI * 2) * .05, br = restBreath(t);
@@ -2659,7 +2678,7 @@ function drawRest(cv, L, t) {
   const SL = Object.assign({}, L, { face: 'rest', noShadow: true, items: L.items.filter(i => !REST_DROP.includes(i)) });
   drawInto(restSprite, SL, 1, true); // gezeichnete Figur, zwischengespeichert
   const b = spriteBox(restSprite, (hi ? 'h' : 'r') + JSON.stringify(SL));
-  const scene = REST_SCENES[L.line || L.lean] || REST_SCENES.aus;
+  const scene = D.stage < 3 ? REST_SCENES.funken : REST_SCENES[L.line || L.lean] || REST_SCENES.aus;
   const ctx = (hi ? cv : restComp).getContext('2d');
   ctx.clearRect(0, 0, RS, RS); ctx.imageSmoothingEnabled = false;
   scene(ctx, t, restSprite, b, Math.round(b.y1 + 5), hi);
