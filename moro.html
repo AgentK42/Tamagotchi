@@ -39,6 +39,32 @@
     color-scheme: light;
   }
 }
+/* Farbpalette „Rosa“ (Einstellung data-palette="rosa"): Aubergine dunkel, Pastellrosa hell, Himbeerpink als Akzent */
+:root[data-palette="rosa"] {
+  --bg: #1E1424; --surface: #2A1D33; --ink: #F8EAF2; --muted: #BFA3B8; --line: #3E2C49;
+  --accent: #FF8FB8; --accent-ink: #1E1424; --accent-soft: #4A2540; --gold: #F5C542;
+  --stage: #2F2140; --lane: rgba(255,255,255,.08); --track: #3D2A4D;
+  --heat0: #2C2034; --heat1: #5A2A4C; --heat2: #B04F84; --heat3: #FF8FB8;
+  --good: #6FD6AE; --warn: #F2B866; --bad: #FF8A96;
+}
+:root[data-palette="rosa"][data-theme="light"] {
+  --bg: #FFF4F7; --surface: #FFFFFF; --ink: #3A1F33; --muted: #7D5C71; --line: #F3D9E3;
+  --accent: #D6337A; --accent-ink: #FFFFFF; --accent-soft: #FFE1EC; --gold: #E9A912;
+  --stage: #FCE6F0; --lane: rgba(255,255,255,.8); --track: #F6CFDF;
+  --heat0: #FBE7EF; --heat1: #F9B8D0; --heat2: #EE7AA8; --heat3: #D6337A;
+  --good: #17785A; --warn: #95600A; --bad: #C93A52;
+  --shadow: 0 1px 2px rgba(58,31,51,.06), 0 8px 24px rgba(214,51,122,.08);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-palette="rosa"][data-theme="system"] {
+    --bg: #FFF4F7; --surface: #FFFFFF; --ink: #3A1F33; --muted: #7D5C71; --line: #F3D9E3;
+    --accent: #D6337A; --accent-ink: #FFFFFF; --accent-soft: #FFE1EC; --gold: #E9A912;
+    --stage: #FCE6F0; --lane: rgba(255,255,255,.8); --track: #F6CFDF;
+    --heat0: #FBE7EF; --heat1: #F9B8D0; --heat2: #EE7AA8; --heat3: #D6337A;
+    --good: #17785A; --warn: #95600A; --bad: #C93A52;
+    --shadow: 0 1px 2px rgba(58,31,51,.06), 0 8px 24px rgba(214,51,122,.08);
+  }
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -225,6 +251,13 @@ button.item.off i { background: var(--heat0); }
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 3 Q60 12 120 3' fill='none' stroke='%23C9B37A' stroke-width='1.2'/%3E%3Cpath d='M6 4 l8 1.6 -4.5 10z' fill='%23E5484D'/%3E%3Cpath d='M26 6.6 l8 1 -4.4 10z' fill='%23F5C542'/%3E%3Cpath d='M46 7.8 l8 .4 -4.2 10z' fill='%237E98FF'/%3E%3Cpath d='M66 7.9 l8 -.2 -4 10z' fill='%232BB3A0'/%3E%3Cpath d='M86 6.9 l8 -.9 -3.6 10z' fill='%23E5484D'/%3E%3Cpath d='M106 4.6 l8 -1.5 -3.2 10z' fill='%23F5C542'/%3E%3C/svg%3E") top left / 50% auto repeat-x,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 9px, transparent 9px 13px) 0 62% / 100% 16% no-repeat,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 9px, transparent 9px 13px) 0 45% / 100% 14% no-repeat;
+}
+:root[data-palette="rosa"] .stage.m4::before { /* Wimpel Lavendel statt Blau */
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 3 Q60 12 120 3' fill='none' stroke='%23C9B37A' stroke-width='1.2'/%3E%3Cpath d='M6 4 l8 1.6 -4.5 10z' fill='%23E5484D'/%3E%3Cpath d='M26 6.6 l8 1 -4.4 10z' fill='%23F5C542'/%3E%3Cpath d='M46 7.8 l8 .4 -4.2 10z' fill='%23B9A4F0'/%3E%3Cpath d='M66 7.9 l8 -.2 -4 10z' fill='%232BB3A0'/%3E%3Cpath d='M86 6.9 l8 -.9 -3.6 10z' fill='%23E5484D'/%3E%3Cpath d='M106 4.6 l8 -1.5 -3.2 10z' fill='%23F5C542'/%3E%3C/svg%3E") top left / 50% auto repeat-x,
     repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 9px, transparent 9px 13px) 0 62% / 100% 16% no-repeat,
     repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 9px, transparent 9px 13px) 0 45% / 100% 14% no-repeat;
 }
@@ -568,6 +601,13 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
           <button type="button" data-v="system">Wie Gerät</button>
         </div>
       </div>
+      <div>
+        <p class="lbl">Farbpalette</p>
+        <div class="seg" id="paletteSeg" role="group" aria-label="Farbpalette">
+          <button type="button" data-v="blau">Blau</button>
+          <button type="button" data-v="rosa">Rosa</button>
+        </div>
+      </div>
       <div class="egg-set">
         <div id="eggSetMain" hidden>
           <p class="lbl">Neues Ei</p>
@@ -884,7 +924,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const REAL_TIME = false;
 // Version: Hauptversion.Feature.Fix. Neues Feature → mittlere Stelle +1 und Fix auf 0 (0.4.2 → 0.5.0),
 // reiner Fehler-Fix → letzte Stelle +1 (0.4.0 → 0.4.1). Bei jeder Änderung an der App mit anpassen.
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 const localIso = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(state, d); return x.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }); };
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
@@ -2416,7 +2456,7 @@ function hatchNewEgg() {
   const old = state, s = freshState();
   s.pick = eggPick === 'auto' ? null : eggPick;
   s.archive = [...old.archive, { name: old.name, line: D.line, days: old.day + 1, xp: D.xp }];
-  Object.assign(s, { style: old.style, theme: old.theme, tab: 'heute', name: 'Moro' });
+  Object.assign(s, { style: old.style, theme: old.theme, palette: old.palette, tab: 'heute', name: 'Moro' });
   s.tests = old.tests.map(t => Object.assign({}, t, { day: t.day - (old.day + 1) }));
   state = s; thumbCache.clear(); commit(); tick();
   toast(`${old.name} wohnt jetzt im Album. Ein neues Ei liegt bereit.`);
@@ -2490,15 +2530,18 @@ $('reset').addEventListener('click', e => {
 /* ---------- Einstellungen ---------- */
 function applyTheme() {
   const t = (state && state.theme) || 'dark';
+  const rosa = state && state.palette === 'rosa';
   document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-palette', rosa ? 'rosa' : 'blau');
   const light = t === 'light' || (t === 'system' && matchMedia('(prefers-color-scheme: light)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#EDF1F7' : '#0D1220');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', rosa ? (light ? '#FFF4F7' : '#1E1424') : (light ? '#EDF1F7' : '#0D1220'));
 }
 matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => applyTheme());
 function renderSettings() {
   $('appVersion').textContent = `Version ${APP_VERSION}`;
   if (document.activeElement !== $('setName')) $('setName').value = state.name;
   document.querySelectorAll('#themeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (state.theme || 'dark'))));
+  document.querySelectorAll('#paletteSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (state.palette || 'blau'))));
   document.querySelectorAll('#gfxSeg button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'hi') === isHi())));
   const owned = state.items.slice().sort((a, b) => a.day - b.day);
   $('itemsCount').textContent = owned.length ? `· ${owned.length} gefunden` : '';
@@ -2529,6 +2572,7 @@ function renderSettings() {
 $('setNameSave').addEventListener('click', () => { state.name = $('setName').value.trim() || 'Moro'; commit(); toast(`Dein Begleiter heißt jetzt ${state.name}.`); });
 $('setName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('setNameSave').click(); } });
 $('themeSeg').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; state.theme = b.dataset.v; save(); applyTheme(); render(); });
+$('paletteSeg').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; state.palette = b.dataset.v; save(); applyTheme(); render(); });
 $('gfxSeg').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; state.style = b.dataset.v; save(); render(); tick(); });
 $('itemToggles').addEventListener('change', e => {
   const k = e.target.dataset.item; if (!k) return;
@@ -2609,7 +2653,7 @@ $('bkReset').addEventListener('click', e => {
   const b = e.currentTarget;
   if (!wipeArmed) { b.textContent = 'Wirklich alles löschen? Nochmal tippen'; wipeArmed = setTimeout(() => { b.textContent = 'Alles zurücksetzen'; wipeArmed = null; }, 4000); return; }
   clearTimeout(wipeArmed); wipeArmed = null; b.textContent = 'Alles zurücksetzen';
-  const keep = { name: state.name, theme: state.theme, style: state.style, tab: state.tab };
+  const keep = { name: state.name, theme: state.theme, palette: state.palette, style: state.style, tab: state.tab };
   state = Object.assign(freshState(), keep); thumbCache.clear(); commit(); tick();
   toast('Alles zurückgesetzt. Ein neues Ei liegt bereit.');
 });

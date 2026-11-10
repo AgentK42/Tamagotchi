@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="de">
+<head>
+<base href="pwa/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paletten-Vorschau</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root { --pg-bg: #F6F2F4; --pg-ink: #2A2030; --pg-muted: #6E6276; --pg-line: #E2D8DE; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--pg-bg); color: var(--pg-ink); font: 400 15px/1.5 'Figtree', system-ui, sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font: 800 30px/1.1 'Bricolage Grotesque', system-ui; margin: 0 0 6px; }
+h2 { font: 700 20px/1.2 'Bricolage Grotesque', system-ui; margin: 34px 0 4px; }
+.lead { color: var(--pg-muted); margin: 0 0 8px; max-width: 72ch; }
+.eyebrow { font: 500 12px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: #D6337A; margin: 0; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 14px; }
+.label { font: 500 12px 'IBM Plex Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-muted); margin: 0 0 6px; }
+.note { margin-top: 28px; color: var(--pg-muted); font-size: 13px; border-top: 1px solid var(--pg-line); padding-top: 12px; }
+
+/* ---------- Paletten ---------- */
+.p-old-dark {
+  --bg: #0D1220; --surface: #161D2E; --ink: #E7EBF5; --muted: #98A1B7; --line: #283149;
+  --accent: #7E98FF; --accent-ink: #0D1220; --accent-soft: #222D52; --gold: #F3C04A; --alt: #7E98FF;
+  --stage: #1B2540; --lane: rgba(255,255,255,.09); --track: #222E4E;
+  --heat0: #1E2638; --heat1: #2B3B78; --heat2: #4964D8; --heat3: #8EA5FF;
+  --good: #4CC995; --warn: #E9A94A; --bad: #F07373;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}
+.p-old-light {
+  --bg: #EDF1F7; --surface: #FFFFFF; --ink: #131A2C; --muted: #586179; --line: #D7DDE8;
+  --accent: #2F5BFF; --accent-ink: #FFFFFF; --accent-soft: #E3E9FF; --gold: #E9A912; --alt: #2F5BFF;
+  --stage: #DCE5F4; --lane: rgba(255,255,255,.75); --track: #C9D4E8;
+  --heat0: #E2E7F0; --heat1: #BCCBFF; --heat2: #7D97FF; --heat3: #2F5BFF;
+  --good: #16865B; --warn: #B26A00; --bad: #C93A3A;
+  --shadow: 0 1px 2px rgba(19,26,44,.06), 0 8px 24px rgba(19,26,44,.06);
+}
+.p-new-light {
+  --bg: #FFF4F7; --surface: #FFFFFF; --ink: #3A1F33; --muted: #7D5C71; --line: #F3D9E3;
+  --accent: #D6337A; --accent-ink: #FFFFFF; --accent-soft: #FFE1EC; --gold: #E9A912; --alt: #7052C4;
+  --stage: #FCE6F0; --lane: rgba(255,255,255,.8); --track: #F6CFDF;
+  --heat0: #FBE7EF; --heat1: #F9B8D0; --heat2: #EE7AA8; --heat3: #D6337A;
+  --good: #17785A; --warn: #95600A; --bad: #C93A52;
+  --shadow: 0 1px 2px rgba(58,31,51,.06), 0 8px 24px rgba(214,51,122,.08);
+}
+.p-new-dark {
+  --bg: #1E1424; --surface: #2A1D33; --ink: #F8EAF2; --muted: #BFA3B8; --line: #3E2C49;
+  --accent: #FF8FB8; --accent-ink: #1E1424; --accent-soft: #4A2540; --gold: #F5C542; --alt: #B9A4F0;
+  --stage: #2F2140; --lane: rgba(255,255,255,.08); --track: #3D2A4D;
+  --heat0: #2C2034; --heat1: #5A2A4C; --heat2: #B04F84; --heat3: #FF8FB8;
+  --good: #6FD6AE; --warn: #F2B866; --bad: #FF8A96;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}
+
+/* ---------- Mini-App ---------- */
+.app { background: var(--bg); color: var(--ink); border-radius: 22px; padding: 14px; display: grid; gap: 12px; border: 1px solid var(--pg-line); }
+.app h3 { font: 700 18px/1.2 'Bricolage Grotesque', system-ui; margin: 0; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.top b { font: 800 24px 'Bricolage Grotesque', system-ui; }
+.top span { color: var(--muted); font-size: 12px; }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.tabs i { font-style: normal; text-align: center; font-weight: 700; font-size: 13px; padding: 8px 2px; border-radius: 10px; color: var(--muted); }
+.tabs i.on { background: var(--accent-soft); color: var(--ink); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 10px; }
+.mstage { position: relative; background: var(--stage); border-radius: 14px; aspect-ratio: 16/10; overflow: hidden; }
+.mstage .lanes { position: absolute; inset: auto 0 0; height: 34%; background: var(--track); }
+.mstage .lanes::before, .mstage .lanes::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--lane); }
+.mstage .lanes::before { top: 33%; } .mstage .lanes::after { top: 66%; }
+.mstage svg { position: absolute; left: 50%; bottom: 14%; width: 38%; transform: translateX(-50%); }
+.mood { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.mood b { font-weight: 700; }
+.pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.pill.good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.pill.bad  { color: var(--bad);  background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.pill.alt  { color: var(--alt);  background: color-mix(in srgb, var(--alt) 16%, transparent); }
+.bars { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+.bar { display: grid; grid-template-columns: 90px 1fr 28px; align-items: center; gap: 8px; }
+.bar u { display: block; height: 8px; border-radius: 99px; background: var(--heat0); overflow: hidden; text-decoration: none; }
+.bar u::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--accent); border-radius: 99px; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 15px 'Figtree', system-ui; padding: 11px 14px; border-radius: 10px; width: 100%; }
+.btn2 { border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 14px 'Figtree', system-ui; padding: 7px 12px; border-radius: 10px; }
+.sample { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; }
+.sample strong { color: var(--ink); }
+.heat { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.heat i { aspect-ratio: 1; border-radius: 3px; background: var(--heat0); }
+.heat i.h1 { background: var(--heat1); } .heat i.h2 { background: var(--heat2); } .heat i.h3 { background: var(--heat3); }
+.gold { color: var(--gold); font-weight: 700; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---------- Kontrasttabelle ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; background: #fff; border-radius: 14px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--pg-line); }
+th { font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; color: var(--pg-muted); }
+td .sw { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+.ok { color: #1F8A68; font-weight: 700; } .meh { color: #A86A0C; font-weight: 700; } .no { color: #C93A52; font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+
+/* ---------- Bühnen (wie in der App) ---------- */
+.stagegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.stagegrid figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 8px; color: var(--ink); }
+.stagegrid figcaption { padding: 6px 4px 0; font-size: 13px; font-weight: 700; }
+.stagegrid figcaption span { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.stage { position: relative; border-radius: 12px; overflow: hidden; background: var(--stage); aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
+  background: repeating-linear-gradient(180deg, var(--track) 0 18px, var(--lane) 18px 20px); z-index: 0; }
+.stage.m2 { background: radial-gradient(ellipse 45% 70% at 30% 0%, rgba(255,226,140,.20), transparent 70%), radial-gradient(ellipse 45% 70% at 70% 0%, rgba(255,226,140,.20), transparent 70%), var(--stage); }
+.stage.m4::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--bunting) top left / 50% auto repeat-x,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 9px, transparent 9px 13px) 0 62% / 100% 16% no-repeat,
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 9px, transparent 9px 13px) 0 45% / 100% 14% no-repeat; }
+.stage svg { position: relative; z-index: 1; width: 46%; margin-top: 8%; }
+.panel { background: var(--bg); border-radius: 22px; padding: 14px; border: 1px solid var(--pg-line); margin-top: 10px; }
+.panel .label { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Vorschau · Farbpalette</p>
+  <h1>Rosa statt Kobalt</h1>
+  <p class="lead">Links die heutige Palette, rechts der Vorschlag. Moro selbst behält seine Farben, nur der Rahmen drumherum ändert sich: Hintergrund, Karten, Tabs, Buttons, Balken und Kalender.</p>
+
+  <h2>Hell</h2>
+  <p class="lead">Rosa Hauch statt kühlem Blaugrau, Himbeerpink als Akzent, Lavendel als Zweitfarbe für Abzeichen.</p>
+  <div class="pair">
+    <div><p class="label">Heute</p><div class="app p-old-light" data-mock></div></div>
+    <div><p class="label">Neu</p><div class="app p-new-light" data-mock></div></div>
+  </div>
+
+  <h2>Dunkel</h2>
+  <p class="lead">Aubergine statt Navy, Rosé als Akzent. Bleibt gemütlich, wirkt aber nicht mehr wie eine Banking-App.</p>
+  <div class="pair">
+    <div><p class="label">Heute</p><div class="app p-old-dark" data-mock></div></div>
+    <div><p class="label">Neu</p><div class="app p-new-dark" data-mock></div></div>
+  </div>
+
+  <h2>Bühnen-Hintergründe</h2>
+  <p class="lead">Die Laufbahn und die Meister-Ausbauten (Scheinwerfer, Stadion) nehmen die Farben der Palette an. Im Stadion ist im Vorschlag der blaue Wimpel gegen Lavendel getauscht.</p>
+  <div class="pair">
+    <div><p class="label">Hell heute</p><div class="panel p-old-light"><div class="stagegrid" data-base></div></div></div>
+    <div><p class="label">Hell neu</p><div class="panel p-new-light"><div class="stagegrid" data-base></div></div></div>
+  </div>
+  <div class="pair">
+    <div><p class="label">Dunkel heute</p><div class="panel p-old-dark"><div class="stagegrid" data-base></div></div></div>
+    <div><p class="label">Dunkel neu</p><div class="panel p-new-dark"><div class="stagegrid" data-base></div></div></div>
+  </div>
+
+  <h2>Freischaltbare Szenen im neuen Rahmen</h2>
+  <p class="lead">Die acht Szenen aus der App haben eigene, feste Farben und bleiben unverändert. Hier stehen sie in den neuen Karten, damit man sieht, wie sie zum rosa Rahmen passen.</p>
+  <div class="panel p-new-light"><p class="label">Hell neu</p><div class="stagegrid" data-scenes></div></div>
+  <div class="panel p-new-dark"><p class="label">Dunkel neu</p><div class="stagegrid" data-scenes></div></div>
+
+  <h2>Kontraste</h2>
+  <p class="lead">Gemessen nach WCAG. Fließtext braucht mindestens 4,5:1, große Schrift und Flächen 3:1.</p>
+  <div class="tablewrap"><table id="contrast"></table></div>
+
+  <p class="note">Nur eine Vorschau, nicht Teil der App. Die Figur ist ein Platzhalter in Moros Rosatönen; die echte Zeichnung bleibt unverändert.</p>
+</main>
+
+<script>
+(() => {
+const moro = `<svg viewBox="0 0 100 90" aria-hidden="true">
+  <ellipse cx="50" cy="86" rx="30" ry="4" fill="rgba(0,0,0,.12)"/>
+  <path d="M22 30 L16 8 L38 22 Z" fill="#FF7FA0"/><path d="M78 30 L84 8 L62 22 Z" fill="#FF7FA0"/>
+  <path d="M24 26 L21 14 L33 22 Z" fill="#FFB3C7"/><path d="M76 26 L79 14 L67 22 Z" fill="#FFB3C7"/>
+  <ellipse cx="50" cy="52" rx="34" ry="32" fill="#FF9DB0"/>
+  <ellipse cx="50" cy="62" rx="20" ry="16" fill="#FFF7EE"/>
+  <circle cx="38" cy="46" r="4.5" fill="#5A2236"/><circle cx="62" cy="46" r="4.5" fill="#5A2236"/>
+  <circle cx="39.5" cy="44.5" r="1.5" fill="#fff"/><circle cx="63.5" cy="44.5" r="1.5" fill="#fff"/>
+  <ellipse cx="29" cy="56" rx="5" ry="3" fill="#FF7FA0" opacity=".7"/><ellipse cx="71" cy="56" rx="5" ry="3" fill="#FF7FA0" opacity=".7"/>
+  <path d="M45 56 Q50 61 55 56" stroke="#5A2236" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+</svg>`;
+const heat = [0,1,0,2,3,0,1, 2,0,0,3,1,2,0, 1,3,2,0,0,2,3, 0,1,2,3,1,0,2];
+const mock = `
+  <div class="top"><b>Moro</b><span>Tag 42 · Teen</span></div>
+  <div class="tabs"><i class="on">Heute</i><i>Fortschritt</i><i>Verlauf</i><i>Sammlung</i></div>
+  <div class="card">
+    <div class="mstage"><div class="lanes"></div>${moro}</div>
+    <div class="mood"><b>Moro ist bester Laune</b><span class="row"><span class="pill good">Fit</span><span class="pill alt">Neues Abzeichen</span></span></div>
+    <div class="bars">
+      <div class="bar">Ausdauer<u style="--w:72%"></u>72</div>
+      <div class="bar">Kraft<u style="--w:45%"></u>45</div>
+      <div class="bar">Beweglichkeit<u style="--w:58%"></u>58</div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Training eintragen</h3>
+    <p class="sample">Zuletzt: <strong>Laufen, 35 min</strong> · <span class="gold">+12 Funken</span></p>
+    <div class="row"><button class="btn2">Laufen</button><button class="btn2">Yoga</button><button class="btn2">Kraft</button></div>
+    <button class="btn">Speichern</button>
+    <div class="row"><span class="pill warn">Durstig</span><span class="pill bad">Ruhetag fällig</span></div>
+  </div>
+  <div class="card">
+    <h3>Letzte vier Wochen</h3>
+    <div class="heat">${heat.concat(heat.slice(0,0)).map(h => `<i class="h${h}"></i>`).join('')}</div>
+  </div>`;
+document.querySelectorAll('[data-mock]').forEach(el => { el.innerHTML = mock; });
+
+// Kontraste
+const lum = hex => {
+  const n = parseInt(hex.slice(1), 16);
+  return [n >> 16, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; })
+    .reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
+};
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+const vars = cls => { const el = document.querySelector('.' + cls); const cs = getComputedStyle(el); return n => cs.getPropertyValue('--' + n).trim(); };
+const checks = [
+  ['Text auf Hintergrund', 'ink', 'bg', 4.5],
+  ['Leiser Text auf Hintergrund', 'muted', 'bg', 4.5],
+  ['Leiser Text auf Karte', 'muted', 'surface', 4.5],
+  ['Button-Schrift auf Akzent', 'accent-ink', 'accent', 4.5],
+  ['Akzent auf Karte (Rahmen, Fokus)', 'accent', 'surface', 3],
+  ['Grün auf Karte', 'good', 'surface', 4.5],
+  ['Orange auf Karte', 'warn', 'surface', 4.5],
+  ['Rot auf Karte', 'bad', 'surface', 4.5],
+  ['Lavendel auf Karte', 'alt', 'surface', 4.5],
+];
+const sets = [['Hell heute', 'p-old-light'], ['Hell neu', 'p-new-light'], ['Dunkel heute', 'p-old-dark'], ['Dunkel neu', 'p-new-dark']];
+const getters = sets.map(([, c]) => vars(c));
+let html = '<tr><th>Paar</th><th>Ziel</th>' + sets.map(([n]) => `<th>${n}</th>`).join('') + '</tr>';
+for (const [name, fg, bg, min] of checks) {
+  html += `<tr><td>${name}</td><td>${String(min).replace('.', ',')}:1</td>`;
+  getters.forEach(g => {
+    const f = g(fg), b = g(bg), r = ratio(f, b);
+    const cls = r >= min ? 'ok' : r >= 3 ? 'meh' : 'no';
+    html += `<td><span class="sw" style="color:${f};background:${b}">Aa</span> <span class="${cls}">${r.toFixed(1).replace('.', ',')}</span></td>`;
+  });
+  html += '</tr>';
+}
+document.getElementById('contrast').innerHTML = html;
+})();
+</script>
+<script>
+// Szenen 1:1 aus moro.html übernommen
+const SCENES = { sterne: 'Sternenhimmel', morgen: 'Morgenrot', weltall: 'Weltall', regenbogen: 'Regenbogen', fruehling: 'Frühling', sommer: 'Sommer', herbst: 'Herbst', winter: 'Winter' };
+(() => {
+  // Szenen als SVG (400 × 300). Boden immer unten 22 % wie die Laufbahn; nur Himmel, Licht und ferner Horizont, nichts mit echter Größe.
+  const svg = body => 'url("data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges">${body}</svg>`) + '")';
+  const rng = seed => { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; };
+  const sky = (...stops) => `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient></defs><rect width="400" height="300" fill="url(#s)"/>`;
+  const stars = (n, seed, maxY = 190) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) { const x = Math.round(r() * 400), y = Math.round(r() * maxY), z = r() < .15 ? 3 : 2; out += `<rect x="${x}" y="${y}" width="${z}" height="${z}" fill="#FFFFFF" opacity="${(.45 + r() * .55).toFixed(2)}"/>`; } return out; };
+  const LEAF_COLS = [['#E5484D', '#8E2326'], ['#F28C28', '#9A4E0E'], ['#F5B82E', '#9A6A06'], ['#C2552B', '#6E2A12']];
+  const leaves = (n, seed, y0, y1, s0, s1) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(y0 + r() * (y1 - y0)), [f, o] = LEAF_COLS[Math.floor(r() * 4)], rot = Math.round(r() * 360), sc = (s0 + r() * (s1 - s0)).toFixed(2);
+      out += `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})"><path d="M-9 0 C-6 -6 4 -7 9 0 C4 7 -6 6 -9 0Z" fill="${f}" stroke="${o}" stroke-width="1.3" stroke-linejoin="round"/><path d="M-8 0 L8 0 M-2 0 L1 -3.5 M-2 0 L1 3.5 M3 0 L5.5 -2.4 M3 0 L5.5 2.4" stroke="${o}" stroke-width=".9" fill="none" opacity=".8"/><path d="M-9 0 L-13 1.5" stroke="${o}" stroke-width="1.4"/></g>`;
+    } return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const pixLeaves = (n, seed, y0, y1) => { const r = rng(seed), P = 5; let out = '';
+    const FORMS = [[[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]], [[1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2]], [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2]]];
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 78) * P, y = Math.round((y0 + r() * (y1 - y0)) / P) * P, [f, o] = LEAF_COLS[Math.floor(r() * 4)], form = FORMS[Math.floor(r() * 3)];
+      form.forEach(([a, b], j) => { out += `<rect x="${x + a * P}" y="${y + b * P}" width="${P}" height="${P}" fill="${j === form.length - 1 ? o : f}"/>`; });
+    } return out; };
+  const specks = (n, seed, cols, petal) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(r() * 280), col = cols[Math.floor(r() * cols.length)], rot = Math.round(r() * 90);
+      if (petal) out += `<rect x="${x}" y="${y}" width="8" height="5" rx="2.5" fill="${col}" transform="rotate(${rot} ${x} ${y})"/>`;
+      else { const z = r() < .35 ? 5 : 3; out += `<rect x="${x}" y="${y}" width="${z}" height="${z}" fill="${col}" opacity="${(.75 + r() * .25).toFixed(2)}"/>`; }
+    } return out; };
+  const PETAL = 'M0 -1.2 C-3.4 -3 -3.6 -7.4 -1.4 -8.6 L0 -7.4 L1.4 -8.6 C3.6 -7.4 3.4 -3 0 -1.2Z';
+  const blossoms = (n, seed, y0, y1, s0, s1) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(r() * 400), y = Math.round(y0 + r() * (y1 - y0)), rot = Math.round(r() * 72), sc = (s0 + r() * (s1 - s0)).toFixed(2), f = r() < .5 ? '#F7B6CF' : '#FBC9DC';
+      out += `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})">`
+        + [0, 72, 144, 216, 288].map(a => `<path d="${PETAL}" transform="rotate(${a})" fill="${f}" stroke="#D9608E" stroke-width=".8" stroke-linejoin="round"/>`).join('')
+        + [0, 72, 144, 216, 288].map(a => `<path d="M0 0 L0 -3.4" transform="rotate(${a + 36})" stroke="#E8749F" stroke-width=".6"/>`).join('')
+        + '<circle r="1.7" fill="#F5C542" stroke="#C98F1E" stroke-width=".5"/></g>';
+    } return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const loosePetals = (n, seed) => { const r = rng(seed); let out = '';
+    for (let i = 0; i < n; i++) out += `<path d="${PETAL}" transform="translate(${Math.round(r() * 400)} ${Math.round(r() * 280)}) rotate(${Math.round(r() * 360)}) scale(1.1)" fill="#F7B6CF" stroke="#D9608E" stroke-width=".8"/>`;
+    return `<g shape-rendering="geometricPrecision">${out}</g>`; };
+  const SPRING = sky([0, '#A9D8F5'], [1, '#FCE4F0'])
+    + '<g fill="#FFFFFF" opacity=".8"><rect x="40" y="46" width="48" height="8"/><rect x="52" y="40" width="22" height="6"/><rect x="300" y="70" width="52" height="8"/><rect x="314" y="64" width="24" height="6"/></g>'
+    + '<path d="M0 226 Q100 210 200 220 T400 214 V240 H0Z" fill="#A6DB8E"/><rect y="234" width="400" height="66" fill="#8ACB72"/>'
+    + '<g fill="#FFFFFF"><rect x="40" y="250" width="3" height="3"/><rect x="150" y="288" width="3" height="3"/><rect x="270" y="246" width="3" height="3"/><rect x="360" y="278" width="3" height="3"/></g>'
+    + '<g fill="#F5C542"><rect x="41" y="251" width="1" height="1"/><rect x="151" y="289" width="1" height="1"/><rect x="271" y="247" width="1" height="1"/><rect x="361" y="279" width="1" height="1"/></g>'
+    + '<g fill="#F28FB8"><rect x="100" y="262" width="3" height="3"/><rect x="220" y="276" width="3" height="3"/><rect x="320" y="258" width="3" height="3"/></g>';
+  const AUTUMN = sky([0, '#6E8FB8'], [.55, '#E8A86A'], [1, '#F6D29A']);
+  const HI = {
+    sterne: sky([0, '#090D26'], [1, '#26306A']) + stars(70, 7)
+      + '<circle cx="320" cy="62" r="22" fill="#F4EBC2"/><circle cx="330" cy="54" r="20" fill="#121840"/><path d="M0 230 Q100 196 200 214 T400 204 V240 H0Z" fill="#1C2550"/><rect y="234" width="400" height="66" fill="#161E44"/>'
+      + '<g fill="#F5C542" opacity=".9"><rect x="70" y="200" width="3" height="3"/><rect x="250" y="190" width="3" height="3"/><rect x="340" y="214" width="3" height="3"/></g><rect y="234" width="400" height="2" fill="#2C3770"/>',
+    morgen: sky([0, '#2A2C68'], [.45, '#B85A8C'], [.78, '#F59A72'], [1, '#FFD08A']) + stars(14, 3, 70)
+      + '<circle cx="318" cy="234" r="62" fill="#FFE38A" opacity=".25"/><circle cx="318" cy="234" r="46" fill="#FFE07A"/>'
+      + '<g fill="#F59A72"><rect x="270" y="212" width="96" height="3"/><rect x="270" y="220" width="96" height="4"/><rect x="270" y="228" width="96" height="5"/></g>'
+      + '<g fill="#FFFFFF" opacity=".35"><rect x="40" y="120" width="60" height="3"/><rect x="60" y="126" width="30" height="3"/><rect x="290" y="140" width="70" height="3"/><rect x="310" y="146" width="36" height="3"/></g>'
+      + '<rect y="234" width="400" height="66" fill="#4A2D5E"/><g fill="#FFD08A" opacity=".55"><rect x="290" y="242" width="56" height="2"/><rect x="300" y="252" width="36" height="2"/><rect x="310" y="264" width="16" height="2"/></g><rect y="234" width="400" height="2" fill="#7A4A7E"/>',
+    weltall: '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07061C"/><stop offset="1" stop-color="#1E1046"/></linearGradient>'
+      + '<radialGradient id="n1"><stop offset="0" stop-color="#E06CC4" stop-opacity=".55"/><stop offset="1" stop-color="#E06CC4" stop-opacity="0"/></radialGradient>'
+      + '<radialGradient id="n2"><stop offset="0" stop-color="#5B8CFF" stop-opacity=".5"/><stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/></radialGradient></defs>'
+      + '<rect width="400" height="300" fill="url(#s)"/><ellipse cx="110" cy="90" rx="120" ry="60" fill="url(#n1)"/><ellipse cx="270" cy="150" rx="130" ry="56" fill="url(#n2)"/>' + stars(80, 23, 230)
+      + '<g transform="translate(330 64)"><ellipse rx="34" ry="8" fill="none" stroke="#E7C68A" stroke-width="4" opacity=".9"/><circle r="20" fill="#F2A65A"/><rect x="-20" y="-4" width="40" height="4" fill="#D9874A"/><rect x="-18" y="6" width="36" height="3" fill="#D9874A"/><path d="M-34 0 A34 8 0 0 0 34 0" fill="none" stroke="#E7C68A" stroke-width="4"/></g>'
+      + '<circle cx="56" cy="170" r="9" fill="#7FD3E8"/><rect x="47" y="168" width="18" height="2" fill="#5AB5CF"/><rect y="234" width="400" height="66" fill="#4A4F68"/><path d="M0 234 Q100 228 200 232 T400 230 V236 H0Z" fill="#5D6380"/>'
+      + '<g fill="#3A3E55"><ellipse cx="70" cy="258" rx="18" ry="5"/><ellipse cx="300" cy="278" rx="26" ry="6"/><ellipse cx="200" cy="292" rx="12" ry="3"/><ellipse cx="350" cy="248" rx="10" ry="3"/></g>',
+    regenbogen: sky([0, '#8FCBF2'], [1, '#F3E8FF'])
+      + '<g fill="none" stroke-width="10" opacity=".75"><path d="M30 240 A170 170 0 0 1 370 240" stroke="#F06A6A"/><path d="M40 240 A160 160 0 0 1 360 240" stroke="#F5A050"/><path d="M50 240 A150 150 0 0 1 350 240" stroke="#F5D45A"/><path d="M60 240 A140 140 0 0 1 340 240" stroke="#7CCB7A"/><path d="M70 240 A130 130 0 0 1 330 240" stroke="#6AA8F0"/><path d="M80 240 A120 120 0 0 1 320 240" stroke="#A884E8"/></g>'
+      + '<g fill="#FFFFFF" opacity=".8"><rect x="34" y="40" width="40" height="8"/><rect x="44" y="34" width="20" height="6"/><rect x="316" y="56" width="46" height="8"/><rect x="328" y="50" width="22" height="6"/></g>'
+      + '<g fill="#FFFFFF"><circle cx="20" cy="236" r="26"/><circle cx="56" cy="230" r="22"/><circle cx="96" cy="238" r="18"/><circle cx="304" cy="238" r="18"/><circle cx="344" cy="230" r="22"/><circle cx="382" cy="236" r="26"/></g><rect y="234" width="400" height="66" fill="#FFFFFF"/>'
+      + '<path d="M0 256 Q50 248 100 256 T200 256 T300 256 T400 256 V262 Q350 256 300 262 T200 262 T100 262 T0 262Z" fill="#E4ECF8"/><path d="M0 282 Q60 274 120 282 T240 282 T400 280 V288 Q300 284 200 290 T0 290Z" fill="#E4ECF8"/>',
+    fruehling: SPRING + blossoms(9, 5, 20, 215, 1.2, 1.7) + blossoms(4, 13, 246, 292, .9, 1.1) + loosePetals(7, 9),
+    sommer: sky([0, '#3FA4E8'], [1, '#BFE6FA'])
+      + `<g transform="translate(330 64)"><circle r="44" fill="#FFF1A8" opacity=".35"/><circle r="26" fill="#FFE07A"/><g fill="#FFE07A">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<rect x="34" y="-2" width="10" height="4" transform="rotate(${a})"/>`).join('')}</g></g>`
+      + '<g fill="#FFFFFF" opacity=".55"><rect x="30" y="80" width="40" height="6"/><rect x="40" y="74" width="18" height="6"/></g><path d="M0 228 Q100 216 200 222 T400 218 V240 H0Z" fill="#C9D86A"/><rect y="234" width="400" height="66" fill="#E2C35E"/>'
+      + '<g fill="#C9A443"><rect y="250" width="400" height="2"/><rect y="266" width="400" height="2"/><rect y="284" width="400" height="2"/></g><g fill="#FFFFFF" opacity=".25"><rect x="0" y="236" width="400" height="2"/></g>',
+    herbst: AUTUMN + '<circle cx="82" cy="196" r="30" fill="#FFD27A" opacity=".55"/><path d="M0 226 Q100 212 200 222 T400 214 V240 H0Z" fill="#B8662E"/><rect y="234" width="400" height="66" fill="#9C5A2A"/>'
+      + leaves(34, 41, 242, 298, .9, 1.25) + leaves(4, 17, 30, 200, 1.1, 1.4),
+    winter: sky([0, '#7E91B8'], [1, '#D6E0EE'])
+      + '<circle cx="310" cy="70" r="20" fill="#F2F5FA" opacity=".55"/><path d="M0 228 Q100 212 200 222 T400 214 V240 H0Z" fill="#E6EDF7"/><rect y="234" width="400" height="66" fill="#F4F7FB"/>'
+      + '<path d="M0 262 Q120 252 240 260 T400 256 V264 Q300 262 200 268 T0 270Z" fill="#DCE5F2"/><path d="M0 288 Q100 280 200 288 T400 284 V292 Q300 290 200 294 T0 296Z" fill="#DCE5F2"/>' + specks(80, 29, ['#FFFFFF']),
+  };
+  // Eigene Retro-Fassungen: Frühling mit kleinen Blütenblättern, Herbst mit Pixelblättern
+  const RETRO = {
+    fruehling: SPRING + specks(40, 5, ['#F59CC0', '#F7B6CF', '#E8749F'], true),
+    herbst: AUTUMN + '<rect x="62" y="176" width="40" height="40" fill="#FFD27A" opacity=".55"/><rect y="222" width="400" height="12" fill="#B8662E"/><rect y="234" width="400" height="66" fill="#9C5A2A"/>' + pixLeaves(20, 41, 240, 290) + pixLeaves(3, 17, 40, 190),
+  };
+  const css = Object.entries(HI).map(([k, b]) => `.stage.bg-${k}{background:${svg(b)} center bottom / cover no-repeat}.stage.bg-${k}::after,.stage.bg-${k}::before{display:none}`).join('')
+    + Object.entries(RETRO).map(([k, b]) => `.stage.retro.bg-${k}{background:${svg(b)} center bottom / cover no-repeat}`).join('');
+  const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+})();
+(() => {
+  const bunt = blue => 'url("data:image/svg+xml,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'><path d='M0 3 Q60 12 120 3' fill='none' stroke='#C9B37A' stroke-width='1.2'/><path d='M6 4 l8 1.6 -4.5 10z' fill='#E5484D'/><path d='M26 6.6 l8 1 -4.4 10z' fill='#F5C542'/><path d='M46 7.8 l8 .4 -4.2 10z' fill='${blue}'/><path d='M66 7.9 l8 -.2 -4 10z' fill='#2BB3A0'/><path d='M86 6.9 l8 -.9 -3.6 10z' fill='#E5484D'/><path d='M106 4.6 l8 -1.5 -3.2 10z' fill='#F5C542'/></svg>`) + '")';
+  const st = document.createElement('style');
+  st.textContent = `.p-old-light,.p-old-dark{--bunting:${bunt('#7E98FF')}} .p-new-light,.p-new-dark{--bunting:${bunt('#B9A4F0')}}`;
+  document.head.append(st);
+  const moro = document.querySelector('.mstage svg').outerHTML;
+  const fig = (cls, name, sub) => `<figure><div class="stage ${cls}">${moro}</div><figcaption>${name}<span>${sub}</span></figcaption></figure>`;
+  document.querySelectorAll('[data-base]').forEach(el => { el.innerHTML =
+    fig('', 'Laufbahn', 'Standard') + fig('m2', 'Meister 2', 'Scheinwerfer') + fig('m4', 'Meister 4', 'Stadion'); });
+  document.querySelectorAll('[data-scenes]').forEach(el => { el.innerHTML =
+    Object.entries(SCENES).map(([k, n]) => fig('bg-' + k, n, 'Szene')).join(''); });
+})();
+</script>
+</body>
+</html>
