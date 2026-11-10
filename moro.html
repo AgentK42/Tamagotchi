@@ -365,7 +365,14 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .hist .del.armed { border-color: var(--bad); color: var(--bad); font-size: 12px; font-weight: 600; padding: 4px 8px; }
 .daypick { flex-shrink: 0; }
 .daypick button { padding: 5px 11px; font-size: 13px; }
-.quest-row:has(> .daypick) { flex-wrap: wrap; row-gap: 10px; }
+/* Heute/Gestern bleibt neben der Überschrift; die Überschrift bricht notfalls selbst um */
+.quest-row:has(> .daypick) { align-items: center; }
+.quest-row:has(> .daypick) > div:first-child { min-width: 0; }
+@media (max-width: 480px) {
+  .quest-row:has(> .daypick) { gap: 8px; }
+  .quest-row:has(> .daypick) h2 { font-size: 17px; }
+  .daypick button { padding: 5px 7px; font-size: 12.5px; }
+}
 .empty { color: var(--muted); font-size: 14px; }
 
 /* Toast + Entwicklung */
@@ -924,7 +931,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const REAL_TIME = false;
 // Version: Hauptversion.Feature.Fix. Neues Feature → mittlere Stelle +1 und Fix auf 0 (0.4.2 → 0.5.0),
 // reiner Fehler-Fix → letzte Stelle +1 (0.4.0 → 0.4.1). Bei jeder Änderung an der App mit anpassen.
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 const localIso = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(state, d); return x.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }); };
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
