@@ -1,5 +1,5 @@
 // Service Worker: App komplett offline verfügbar machen. VERSION wird von build.ps1 bei jedem Build erneuert.
-const VERSION = 'moro-20261109-152417';
+const VERSION = 'moro-0.4.0-20261110-094928';
 const CORE = ['./', './index.html', './manifest.webmanifest', './fonts/fonts.css',
   './fonts/bricolagegrotesque-600-latin.woff2', './fonts/bricolagegrotesque-600-latin-ext.woff2',
   './fonts/figtree-400-latin.woff2', './fonts/figtree-400-latin-ext.woff2',

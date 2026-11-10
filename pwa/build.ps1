@@ -6,6 +6,11 @@ $c = Get-Content -Raw -Encoding utf8 (Join-Path $root '../moro.html')
 
 if (-not $c.Contains('const REAL_TIME = false;')) { throw 'REAL_TIME-Schalter in moro.html nicht gefunden' }
 $c = $c.Replace('const REAL_TIME = false;', 'const REAL_TIME = true;')
+
+# Version steht in moro.html (APP_VERSION, Hauptversion.Feature.Fix) und wird dort von Hand gepflegt
+$m = [regex]::Match($c, "const APP_VERSION = '(\d+\.\d+\.\d+)';")
+if (-not $m.Success) { throw 'APP_VERSION (Format 0.4.0) in moro.html nicht gefunden' }
+$appVersion = $m.Groups[1].Value
 $c = $c.Replace('<meta name="claude:viewport-fit-sides" content="cover">', '')
 
 # Schriften lokal statt von Google laden (Datenschutz, offline beim ersten Start)
@@ -68,7 +73,7 @@ Set-Content -Encoding utf8 -NoNewline -Path (Join-Path $root 'tools/icons.html')
 # Neue Cache-Version, damit installierte Apps das Update laden
 $swf = Join-Path $root 'sw.js'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$swc = [regex]::Replace((Get-Content -Raw -Encoding utf8 $swf), "const VERSION = '[^']*';", "const VERSION = 'moro-$stamp';")
+$swc = [regex]::Replace((Get-Content -Raw -Encoding utf8 $swf), "const VERSION = '[^']*';", "const VERSION = 'moro-$appVersion-$stamp';")
 Set-Content -Encoding utf8 -NoNewline -Path $swf -Value $swc
 
-"PWA gebaut: index.html, tools/icons.html, sw.js (Version moro-$stamp)"
+"PWA gebaut: Version $appVersion (index.html, tools/icons.html, sw.js mit Cache moro-$appVersion-$stamp)"

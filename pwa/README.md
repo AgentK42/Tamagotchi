@@ -30,6 +30,16 @@ Dieselbe App wie das Artefakt `moro.html`, aber als installierbare Web-App:
 
 3. Wenn sich die Figur geändert hat und die Icons mitziehen sollen: Server starten und `http://localhost:8765/tools/icons.html` öffnen.
 
+## Versionen
+
+Die Version steht in `moro.html` (`const APP_VERSION = '0.4.0';`) und erscheint ganz unten in den Einstellungen. Sie hat drei Stellen, **Hauptversion.Feature.Fix**:
+
+- **Neues Feature:** mittlere Stelle +1, letzte auf 0 (0.4.2 → 0.5.0)
+- **Fehler-Fix:** letzte Stelle +1 (0.4.0 → 0.4.1)
+- **Hauptversion:** nur bewusst von Hand, zum Beispiel für 1.0.0
+
+Die Version wird bei jeder Änderung an der App von Hand angepasst. `build.ps1` bricht ab, wenn sie fehlt oder nicht dieses Format hat. Startversion war 0.4.0.
+
 ## Lokal testen
 
 ```bash

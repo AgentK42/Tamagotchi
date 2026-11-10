@@ -77,13 +77,20 @@ button, input { font: inherit; color: inherit; }
 .grid[data-tab="fortschritt"] { grid-template-areas: "goals goals" "letter body" "tests records"; }
 .grid[data-tab="verlauf"] { grid-template-areas: "cal cal" "hist hist"; }
 .grid[data-tab="sammlung"] { grid-template-areas: "album album"; }
-.grid[data-tab="einstellungen"] { grid-template-areas: "sprofile sbackup" "sitems sbackup"; }
+.grid[data-tab="einstellungen"] { grid-template-areas: "sprofile sbackup" "sitems sbackup" "sver sver"; }
 .grid[data-tab="heute"] > .card:not(.pet, .quest, .log, .health),
 .grid[data-tab="fortschritt"] > .card:not(.goalsc, .letterc, .bodyc, .tests, .records),
 .grid[data-tab="verlauf"] > .card:not(.cal, .hist),
 .grid[data-tab="sammlung"] > .card:not(.album),
-.grid[data-tab="einstellungen"] > .card:not(.s-profile, .s-items, .s-backup) { display: none; }
+.grid[data-tab="einstellungen"] > .card:not(.s-profile, .s-items, .s-backup, .s-version) { display: none; }
 .s-profile { grid-area: sprofile; } .s-items { grid-area: sitems; } .s-backup { grid-area: sbackup; }
+/* Versionszeile ganz unten in den Einstellungen: ohne Kartenrahmen, nur leise Schrift */
+.card.s-version { grid-area: sver; background: none; border: none; box-shadow: none; padding: 4px 0 0; text-align: center; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+/* Wischen zwischen den Tabs: kurzes Hereingleiten aus der Wischrichtung */
+.grid.swipe-next > .card { animation: swipe-next .22s ease-out; }
+.grid.swipe-prev > .card { animation: swipe-prev .22s ease-out; }
+@keyframes swipe-next { from { transform: translateX(28px); opacity: 0; } }
+@keyframes swipe-prev { from { transform: translateX(-28px); opacity: 0; } }
 /* Einstellungen */
 .toggles { list-style: none; margin: 0; padding: 0; display: grid; }
 .toggles li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -190,7 +197,7 @@ button.item.off i { background: var(--heat0); }
   .grid[data-tab="fortschritt"] { grid-template-areas: "goals" "letter" "body" "tests" "records"; }
   .grid[data-tab="verlauf"] { grid-template-areas: "cal" "hist"; }
   .grid[data-tab="sammlung"] { grid-template-areas: "album"; }
-  .grid[data-tab="einstellungen"] { grid-template-areas: "sprofile" "sitems" "sbackup"; }
+  .grid[data-tab="einstellungen"] { grid-template-areas: "sprofile" "sitems" "sbackup" "sver"; }
 }
 @media (max-width: 480px) {
   .tabs { grid-template-columns: auto auto auto auto 40px; justify-content: space-between; }
@@ -342,7 +349,7 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
 .evo-card .lbl { justify-content: center; }
 .letter-card .paper { text-align: left; justify-self: stretch; } /* Brieftext linksbündig: liest sich als Fließtext */
 .evo-choose { width: 100%; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 4px; }
-@media (prefers-reduced-motion: reduce) { .toast, .evo-card { animation: none; } .bar > i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .toast, .evo-card, .grid.swipe-next > .card, .grid.swipe-prev > .card { animation: none; } .bar > i { transition: none; } }
 /* Aufgeräumte Ansicht (#clean): ohne Prototyp-Steuerung und ohne doppelte Angaben */
 .clean .top, .clean #sampleNote, .clean #styleToggle, .clean .weekdots, .clean .ln em,
 .clean .cal .fine, .clean .album .fine, .clean .xp-row b { display: none; }
@@ -621,6 +628,8 @@ output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: ta
       </div>
     </section>
 
+    <p class="card s-version" id="appVersion"></p>
+
     <section class="card hist" aria-label="Letzte Trainings">
       <div><p class="eyebrow">Verlauf</p><h2>Letzte Trainings</h2></div>
       <ul id="hist"></ul>
@@ -873,6 +882,9 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
 // Echtzeit-Modus (PWA): Tage laufen nach dem Kalender, keine Beispieldaten, keine Prototyp-Knöpfe
 const REAL_TIME = false;
+// Version: Hauptversion.Feature.Fix. Neues Feature → mittlere Stelle +1 und Fix auf 0 (0.4.2 → 0.5.0),
+// reiner Fehler-Fix → letzte Stelle +1 (0.4.0 → 0.4.1). Bei jeder Änderung an der App mit anpassen.
+const APP_VERSION = '0.4.0';
 const localIso = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const dayLabel = d => { if (!REAL_TIME) return `Tag ${d + 1}`; const x = dateOf(state, d); return x.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }); };
 const daysSince = iso => Math.round((new Date(localIso() + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
@@ -1991,12 +2003,49 @@ function renderTabs() {
   $('main').dataset.tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
 }
-$('tabs').addEventListener('click', e => {
-  const b = e.target.closest('button[data-tab]'); if (!b) return;
-  state.tab = b.dataset.tab; save(); renderTabs();
+const TAB_ORDER = ['heute', 'fortschritt', 'verlauf', 'sammlung', 'einstellungen'];
+function setTab(t, dir) {
+  if (t === (state.tab || 'heute')) return;
+  state.tab = t; save(); renderTabs();
   const y = $('tabs').getBoundingClientRect().top + scrollY - 8;
   if (scrollY > y) window.scrollTo(0, y);
+  const m = $('main'); m.classList.remove('swipe-next', 'swipe-prev');
+  if (dir) { void m.offsetWidth; m.classList.add(dir > 0 ? 'swipe-next' : 'swipe-prev'); }
+}
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  setTab(b.dataset.tab, 0);
 });
+$('main').addEventListener('animationend', e => { if (e.target.parentElement === $('main')) $('main').classList.remove('swipe-next', 'swipe-prev'); });
+// Wischen nach links/rechts wechselt zum nächsten/vorigen Tab. Nicht auf Eingabefeldern, Schiebereglern
+// und waagerecht scrollbaren Bereichen (Tabellen, Kalender), und nicht am Bildschirmrand (dort liegt in
+// Safari die Zurück-Geste).
+(() => {
+  let sx = 0, sy = 0, st = 0, on = false;
+  const blocked = el => {
+    for (; el && el !== document.body; el = el.parentElement) {
+      if (el.matches('input, textarea, select, [contenteditable="true"], dialog')) return true;
+      if (el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+    }
+    return false;
+  };
+  $('main').addEventListener('touchstart', e => {
+    on = false;
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    if (t.clientX < 20 || t.clientX > innerWidth - 20 || blocked(e.target)) return;
+    sx = t.clientX; sy = t.clientY; st = Date.now(); on = true;
+  }, { passive: true });
+  $('main').addEventListener('touchend', e => {
+    if (!on) return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+    if (String(getSelection())) return;
+    const i = TAB_ORDER.indexOf(state.tab || 'heute'), n = i + (dx < 0 ? 1 : -1);
+    if (n >= 0 && n < TAB_ORDER.length) setTab(TAB_ORDER[n], dx < 0 ? 1 : -1);
+  }, { passive: true });
+  $('main').addEventListener('touchcancel', () => { on = false; }, { passive: true });
+})();
 function render() {
   D = derive(state);
   renderStyle(); renderTabs(); applyTheme(); renderSettings();
@@ -2447,6 +2496,7 @@ function applyTheme() {
 }
 matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => applyTheme());
 function renderSettings() {
+  $('appVersion').textContent = `Version ${APP_VERSION}`;
   if (document.activeElement !== $('setName')) $('setName').value = state.name;
   document.querySelectorAll('#themeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (state.theme || 'dark'))));
   document.querySelectorAll('#gfxSeg button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'hi') === isHi())));
