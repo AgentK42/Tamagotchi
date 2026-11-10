@@ -222,6 +222,7 @@ button.item.off i { background: var(--heat0); }
     repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 9px, transparent 9px 13px) 0 45% / 100% 14% no-repeat;
 }
 .stage canvas { position: relative; z-index: 1; width: min(76%, 320px); aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges; margin-top: 2%; }
+#petCanvas { cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; } /* schnelles Mehrfachtippen ohne Zoom */
 /* Sprechblase über der Bühne, Spitze zeigt nach unten zur Figur */
 .mood { display: flex; gap: 8px; align-items: flex-end; margin-bottom: -4px; }
 .mood-pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg); white-space: nowrap; }
@@ -2220,6 +2221,7 @@ function showEvo(askLine) {
   $('evoClose').textContent = ask ? 'Akzeptieren' : 'Weiter';
   $('evoChoose').hidden = !ask;
   $('evo').hidden = false; evoOpen = true;
+  if (s === 1) startHatch();
   setTimeout(() => $('evoClose').focus(), 50);
 }
 let pendingMaster = null;
@@ -2264,6 +2266,7 @@ $('logForm').addEventListener('submit', e => {
   toast(`${TYPES[v.type].label} ${day < state.day ? 'für gestern ' : ''}eingetragen · +${gained} XP${xpOf(v) > room ? ' (Tageslimit)' : ''}`);
   if (r.item) toast(`Fundstück: ${ITEMS[r.item]}!`);
   commit(day);
+  cheer(v.type);
   if (persistStatus === 'off') requestPersist(false); // beim Eintragen still um Speicherschutz bitten
 });
 $('petName').addEventListener('input', e => { state.name = e.target.value.trim() || 'Moro'; save(); render(); });
@@ -2685,6 +2688,344 @@ function drawRest(cv, L, t) {
   if (!hi) { const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 40, 40); c.drawImage(restComp, 0, 0, 40, 40); }
 }
 
+/* ---------- Szenen: Jubel nach dem Training, kleine Momente zwischendurch, Schlüpfen ---------- */
+// Gezeichnet wird in 240er-Koordinaten (Retro wird danach auf 40 × 40 verkleinert). lay(face) liefert die Figur in diesem
+// Gesicht als { pet, ground, b }: pet ohne Dinge am Boden, ground nur die Dinge am Boden (die bleiben stehen), b der Umriss.
+const MOVE_MS = { laufen: 2200, rad: 2200, schwimmen: 2500, kraft: 2300, yoga: 2700, team: 2300, gaehnen: 2300, schmetterling: 3800, niesen: 1900 };
+const IDLE_MOVES = ['gaehnen', 'schmetterling', 'niesen'];
+const HATCH_MS = 3400;
+const sm = p => { p = p < 0 ? 0 : p > 1 ? 1 : p; return p * p * (3 - 2 * p); };
+// Mund in 240er-Koordinaten, nach derselben Geometrie wie drawPet und drawPetHi
+function moroMouth(stage, hi) {
+  if (!hi) { const ry = { 1: 4, 2: 6, 3: 7, 4: 8 }[stage], cy = 33 - (stage === 1 ? 1 : 2) - ry, ey = cy - (stage >= 3 ? 2 : 1); return { x: 123, y: (ey + (stage >= 3 ? 3 : 2) + 1.5) * 6 }; }
+  const ry = { 1: 18, 2: 23, 3: 26, 4: 29 }[stage], cy = (stage === 1 ? 102 : 99) - ry, ey = cy - (stage === 1 ? 1 : 3), n = stage >= 3 ? ey + 9 : ey + 6;
+  return { x: 120, y: (stage >= 3 ? n + 4 : n + 2.5) * 2 };
+}
+// Ducken, gestreckt hochhüpfen, gestaucht landen (Zeit in ms, Höhe in 240er-Koordinaten)
+function hopPose(age) {
+  if (age < 90) { const p = age / 90; return { sx: 1 + .12 * p, sy: 1 - .14 * p, dy: 0 }; }
+  if (age < 460) { const p = (age - 90) / 370, s = Math.max(0, 1 - p * 2.5); return { sx: 1 - .08 * s, sy: 1 + .12 * s, dy: -30 * 4 * p * (1 - p) }; }
+  if (age < 580) { const q = Math.sin((age - 460) / 120 * Math.PI); return { sx: 1 + .1 * q, sy: 1 - .12 * q, dy: 0 }; }
+  return {};
+}
+// Schatten, Dinge am Boden und die bewegte Figur (gedreht und gestaucht um die Fußmitte)
+function drawFigure(ctx, T, pose, hi) {
+  let { dx = 0, dy = 0, sx = 1, sy = 1, rot = 0 } = pose || {};
+  if (!hi) { dx = Math.round(dx / 6) * 6; dy = Math.round(dy / 6) * 6; } // Retro: nur ganze Pixel
+  const b = T.b, gx = b.cx, gy = b.y1;
+  rsShadow(ctx, gx, gy + 2, b.w * .42 * (1 + Math.min(0, dy) / 120), .16);
+  ctx.drawImage(T.ground, 0, 0);
+  ctx.save(); ctx.translate(gx + dx, gy + dy); ctx.rotate(rot); ctx.scale(sx, sy); ctx.translate(-gx, -gy);
+  ctx.drawImage(T.pet, 0, 0); ctx.restore();
+}
+function plus(ctx, x, y, s, col, a) {
+  ctx.globalAlpha = Math.max(0, Math.min(1, a)); ctx.fillStyle = col;
+  ctx.fillRect(x - s * 1.5, y - s / 2, s * 3, s); ctx.fillRect(x - s / 2, y - s * 1.5, s, s * 3); ctx.globalAlpha = 1;
+}
+// Fahrtwind: Striche, die links hinter Moro wegziehen
+function streaks(ctx, b, t, a, lw, len = 30) {
+  ctx.strokeStyle = '#C9D2E8'; ctx.lineWidth = lw;
+  [-.2, 0, .2].forEach((o, j) => {
+    const off = (t * .22 + j * 37) % 110, x = b.x0 - 12 - off, y = Math.round(b.y1 - b.h * (.42 + o));
+    ctx.globalAlpha = Math.max(0, a * (1 - off / 110)); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - len, y); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+function butterfly(ctx, x, y, f, hi) {
+  const s = hi ? 1 : 1.4, w = (2 + 8 * f) * s;
+  ctx.fillStyle = '#FFB44C'; [-1, 1].forEach(d => { ctx.beginPath(); ctx.ellipse(x + d * w * .6, y - 4 * s, w * .7 + 1, 7 * s, 0, 0, 7); ctx.fill(); });
+  ctx.fillStyle = '#FF7FA0'; [-1, 1].forEach(d => { ctx.beginPath(); ctx.ellipse(x + d * w * .5, y + 4 * s, w * .5 + 1, 5 * s, 0, 0, 7); ctx.fill(); });
+  ctx.fillStyle = '#3A2A3E'; ctx.fillRect(x - 1.5 * s, y - 8 * s, 3 * s, 15 * s);
+}
+const MOVES = {
+  // Laufen: rennt auf der Stelle, Staubwölkchen und Fahrtwind hinter Moro
+  laufen(ctx, t, lay, hi) {
+    const T = lay('happy'), b = T.b, k = 1 - sm((t - 1700) / 500), up = Math.abs(Math.sin(t / 1000 * Math.PI * 6));
+    ctx.fillStyle = '#C9D2E8';
+    for (let i = Math.max(0, Math.floor((t - 700) / 260)); i <= Math.floor(t / 260) && i * 260 <= 1500; i++) {
+      const p = (t - i * 260) / 700; if (p < 0 || p > 1) continue;
+      ctx.globalAlpha = .45 * (1 - p); ctx.beginPath(); ctx.arc(b.x0 + 10 - p * 44, b.y1 - 6 - p * 12, 6 + p * 9, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    streaks(ctx, b, t, k, hi ? 3 : 6);
+    drawFigure(ctx, T, { dy: -up * 14 * k, rot: .07 * k, sx: 1 + (1 - up) * .04 * k, sy: 1 - (1 - up) * .05 * k }, hi);
+  },
+  // Radfahren: sitzt auf einem kleinen Rad, die Räder drehen sich, Fahrtwind
+  rad(ctx, t, lay, hi) {
+    const T = lay('happy'), b = T.b, a = sm(t / 250) * (1 - sm((t - 1800) / 400)), lw = hi ? 3 : 6;
+    const r = Math.max(18, b.w * .2), y = b.y1 - r + 2, xs = [b.cx - b.w * .45, b.cx + b.w * .45];
+    ctx.globalAlpha = a; ctx.strokeStyle = '#7E8AA8'; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(xs[0], y); ctx.lineTo(b.cx, y - r * .7); ctx.lineTo(xs[1], y); ctx.stroke();
+    xs.forEach(x => {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+      const w = t / 90;
+      if (hi) for (let s = 0; s < 3; s++) { const v = w + s * Math.PI / 3; ctx.beginPath(); ctx.moveTo(x - Math.cos(v) * r, y - Math.sin(v) * r); ctx.lineTo(x + Math.cos(v) * r, y + Math.sin(v) * r); ctx.stroke(); }
+      else { ctx.fillStyle = '#7E8AA8'; ctx.fillRect(x + Math.cos(w) * r * .5 - 3, y + Math.sin(w) * r * .5 - 3, 6, 6); }
+    });
+    ctx.globalAlpha = 1;
+    streaks(ctx, b, t, a, lw, 40);
+    drawFigure(ctx, T, { dy: -Math.abs(Math.sin(t / 1000 * Math.PI * 8)) * 3 * a - 10 * a, rot: .06 * a }, hi);
+  },
+  // Schwimmen: Wasser steigt bis zum Bauch, Moro schaukelt auf den Wellen, Bläschen steigen auf
+  schwimmen(ctx, t, lay, hi) {
+    const T = lay('happy'), b = T.b, lv = sm(t / 450) * (1 - sm((t - 1900) / 500)), lw = hi ? 3 : 6;
+    drawFigure(ctx, T, { dy: Math.sin(t / 1000 * Math.PI * 3) * 5 * lv - lv * 4 }, hi);
+    if (lv < .02) return;
+    const top = b.y1 + 6 - lv * b.h * .4, wave = x => top + Math.sin(x / 20 + t / 170) * 4 * lv;
+    ctx.fillStyle = 'rgba(70,150,240,.55)'; ctx.beginPath(); ctx.moveTo(0, b.y1 + 12);
+    for (let x = 0; x <= RS; x += 6) ctx.lineTo(x, wave(x));
+    ctx.lineTo(RS, b.y1 + 12); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(205,232,255,.9)'; ctx.lineWidth = lw; ctx.beginPath();
+    for (let x = 0; x <= RS; x += 6) x ? ctx.lineTo(x, wave(x)) : ctx.moveTo(x, wave(x));
+    ctx.stroke();
+    ctx.fillStyle = '#DFF1FF';
+    for (let i = 0; i < 4; i++) {
+      const p = (t / 900 + i / 4) % 1, x = b.cx + (i % 2 ? 1 : -1) * (b.w * .3 + i * 6);
+      ctx.globalAlpha = (1 - p) * lv; ctx.beginPath(); ctx.arc(x, top - 4 - p * 40, hi ? 3 : 4, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  },
+  // Krafttraining: stemmt zweimal eine Langhantel über den Kopf
+  kraft(ctx, t, lay, hi) {
+    const T = lay('happy'), b = T.b, a = sm(t / 200) * (1 - sm((t - 2000) / 300));
+    const up = t > 200 && t < 2000 ? Math.abs(Math.sin((t - 200) / 900 * Math.PI)) : 0;
+    drawFigure(ctx, T, { sx: 1 + (1 - up) * .03 * a, sy: 1 - (1 - up) * .04 * a }, hi);
+    const W = Math.min(170, Math.max(96, b.w * 1.25)), y = b.y0 - 2 - up * 28, x0 = b.cx - W / 2;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#9AA3B5'; ctx.fillRect(x0, y - (hi ? 2 : 3), W, hi ? 4 : 6);
+    [x0 - 4, x0 + W - 10].forEach(x => {
+      ctx.fillStyle = '#2E3446'; ctx.beginPath(); ctx.roundRect(x, y - 18, 14, 36, 4); ctx.fill();
+      ctx.fillStyle = '#4A5268'; ctx.beginPath(); ctx.roundRect(x + 2, y - 15, 9, 30, 3); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (t > 1100 && t < 1900) plus(ctx, b.x1 + 4, b.y0 + 24 - (t - 1100) / 30, hi ? 3 : 6, '#FFD86B', Math.sin((t - 1100) / 800 * Math.PI));
+  },
+  // Yoga: auf der Matte, streckt sich lang und neigt sich langsam zu beiden Seiten, Augen zu
+  yoga(ctx, t, lay, hi) {
+    const T = lay('rest'), b = T.b, a = sm(t / 300) * (1 - sm((t - 2300) / 400));
+    ctx.globalAlpha = a; ctx.fillStyle = '#4B3A86'; ctx.fillRect(b.cx - b.w * .8, b.y1 - 2, b.w * 1.6, 9);
+    ctx.fillStyle = '#7A5BC7'; ctx.fillRect(b.cx - b.w * .8, b.y1 - 2, b.w * 1.6, 4); ctx.globalAlpha = 1;
+    const s = sm(t / 600) * (1 - sm((t - 2100) / 500)), sway = t > 600 && t < 2100 ? Math.sin((t - 600) / 1500 * Math.PI * 2) * .13 : 0;
+    drawFigure(ctx, T, { sx: 1 - .06 * s, sy: 1 + .12 * s, rot: sway, dy: -2 }, hi);
+    [[-.7, .3, 0], [.75, .15, 500], [-.55, -.1, 1000], [.6, -.05, 1400]].forEach(([fx, fy, d]) => {
+      const p = (t - d) / 900; if (p > 0 && p < 1) plus(ctx, b.cx + fx * b.w, b.y0 + b.h * (.3 + fy) - p * 14, hi ? 2 : 6, '#B9A6FF', Math.sin(p * Math.PI));
+    });
+  },
+  // Teamsport: ein Ball fällt auf den Kopf, springt zweimal ab und fliegt weg, Moro hüpft vor Freude
+  team(ctx, t, lay, hi) {
+    const T = lay('happy'), b = T.b, r = hi ? 14 : 15, hy = b.y0 - r;
+    let bx = b.cx, by, squash = 0;
+    if (t < 350) by = -20 + (hy + 20) * (t / 350) ** 2;
+    else if (t < 950) { const p = (t - 350) / 600; by = hy - 70 * 4 * p * (1 - p); }
+    else if (t < 1450) { const p = (t - 950) / 500; by = hy - 45 * 4 * p * (1 - p); }
+    else { const p = (t - 1450) / 700; bx = b.cx + p * 150; by = hy - 60 * 4 * p * (1 - p) + p * p * 80; }
+    [350, 950, 1450].forEach(c => { const d = t - c; if (d >= 0 && d < 140) squash = Math.sin(d / 140 * Math.PI); });
+    drawFigure(ctx, T, Object.assign({ sx: 1 + squash * .06, sy: 1 - squash * .08 }, t > 1550 ? hopPose(t - 1550) : {}), hi);
+    if (bx > RS + r) return;
+    ctx.save(); ctx.translate(bx, by); ctx.rotate(t / 160);
+    ctx.fillStyle = '#20263A'; ctx.beginPath(); ctx.arc(0, 0, r + (hi ? 2 : 3), 0, 7); ctx.fill();
+    ctx.fillStyle = '#F4F6FB'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#20263A'; ctx.beginPath();
+    for (let i = 0; i < 5; i++) { const w = i / 5 * Math.PI * 2; ctx.lineTo(Math.cos(w) * r * .4, Math.sin(w) * r * .4); }
+    ctx.fill();
+    for (let i = 0; i < 5; i++) { const w = (i + .5) / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(w) * r * .95, Math.sin(w) * r * .95, r * .24, 0, 7); ctx.fill(); }
+    ctx.restore();
+  },
+  // Gähnen: Augen zu, streckt sich, der Mund geht weit auf
+  gaehnen(ctx, t, lay, hi, L) {
+    const T = lay('rest'), b = T.b, s = sm(t / 500) * (1 - sm((t - 1600) / 500)), sy = 1 + .07 * s;
+    drawFigure(ctx, T, { sx: 1 - .03 * s, sy }, hi);
+    const o = sm((t - 250) / 450) * (1 - sm((t - 1500) / 400)); if (o <= 0) return;
+    const m = moroMouth(L.stage, hi), my = b.y1 - (b.y1 - m.y) * sy + (hi ? 3 : 4);
+    ctx.fillStyle = '#5A2236'; ctx.beginPath(); ctx.ellipse(m.x, my, (hi ? 6 : 8) * o, (hi ? 8 : 11) * o, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#FF7FA0'; ctx.beginPath(); ctx.ellipse(m.x, my + (hi ? 4 : 5) * o, (hi ? 4 : 5) * o, (hi ? 3 : 4) * o, 0, 0, 7); ctx.fill();
+  },
+  // Schmetterling: flattert heran, setzt sich kurz auf den Kopf, Moro freut sich, dann fliegt er weiter
+  schmetterling(ctx, t, lay, hi) {
+    const sat = t >= 1600 && t < 2700, T = lay(t >= 1600 ? 'happy' : 'neutral'), b = T.b;
+    const lx = b.cx + b.w * .15, ly = Math.max(24, b.y0 - 2);
+    let x, y;
+    if (t < 1600) { const p = t / 1600; x = -16 + (lx + 16) * p; y = ly + 40 * (1 - p) + Math.sin(p * Math.PI * 3) * 18 * (1 - p); }
+    else if (sat) { x = lx; y = ly; }
+    else { const p = (t - 2700) / 1100; x = lx + (RS + 30 - lx) * p; y = ly - 20 * p + Math.sin(p * Math.PI * 3) * 12; }
+    drawFigure(ctx, T, { rot: Math.max(-.08, Math.min(.08, (x - b.cx) / 500)), dy: sat ? -Math.abs(Math.sin((t - 1600) / 1100 * Math.PI)) * 3 : 0 }, hi);
+    butterfly(ctx, x, y, sat ? .35 + .65 * Math.abs(Math.sin(t / 260)) : Math.abs(Math.sin(t / 55)), hi);
+  },
+  // Niesen: holt Luft (lehnt sich zurück), niest nach vorn, ein Wölkchen fliegt weg, danach erleichtert
+  niesen(ctx, t, lay, hi, L) {
+    const T = lay(t < 1000 ? 'rest' : 'happy'), b = T.b;
+    let pose;
+    if (t < 700) { const p = sm(t / 700); pose = { rot: -.08 * p, sy: 1 + .05 * p, dx: -3 * p }; }
+    else if (t < 830) { const p = (t - 700) / 130; pose = { rot: .12 * p - .08 * (1 - p), sy: .9, dx: 4 * p }; }
+    else { const p = sm((t - 830) / 400); pose = { rot: .12 * (1 - p), sy: .9 + .1 * p, dx: 4 * (1 - p) }; }
+    drawFigure(ctx, T, pose, hi);
+    if (t > 720 && t < 1500) {
+      const m = moroMouth(L.stage, hi), p = (t - 720) / 780;
+      ctx.fillStyle = '#E6EEFF';
+      [[0, 0, 7], [8, -8, 5], [10, 7, 5], [18, -2, 4]].forEach(([dx, dy, r]) => {
+        ctx.globalAlpha = (1 - p) * .9; ctx.beginPath(); ctx.arc(m.x + b.w * .22 + dx + p * 40, m.y + dy - p * 6, (r + p * 6) * (hi ? 1 : 1.3), 0, 7); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+  },
+};
+// Schlüpfen: Ei wackelt immer stärker, ein Riss läuft quer, der Deckel fliegt weg, Moro ploppt heraus und hüpft
+function drawHatch(ctx, t, egg, baby, hi) {
+  const eb = egg.b, lw = hi ? 3 : 6, zy = eb.y0 + eb.h * .46, gx = eb.cx, gy = eb.y1;
+  const zig = []; for (let i = 0; i <= 8; i++) zig.push([eb.x0 + 1 + (eb.w - 2) * i / 8, zy + (i % 2 ? -7 : 6)]);
+  const half = (top, img) => { // Teil des Eis über oder unter dem Riss
+    ctx.save(); ctx.beginPath(); ctx.moveTo(0, top ? 0 : RS); ctx.lineTo(0, zig[0][1]);
+    zig.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(RS, zig[8][1]); ctx.lineTo(RS, top ? 0 : RS); ctx.closePath(); ctx.clip();
+    ctx.drawImage(img, 0, 0); ctx.restore();
+  };
+  if (t < 1350) {
+    const amp = t < 1000 ? .1 * sm(t / 400) : .16, rot = Math.sin(t / 1000 * Math.PI * 2 * (t < 1000 ? 3 : 7)) * amp;
+    rsShadow(ctx, gx, gy + 2, eb.w * .42, .16);
+    ctx.save(); ctx.translate(gx, gy); ctx.rotate(rot); ctx.translate(-gx, -gy);
+    ctx.drawImage(egg.pet, 0, 0);
+    const c = sm((t - 300) / 700) * 8;
+    if (c > 0) {
+      ctx.strokeStyle = '#5D6478'; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(zig[0][0], zig[0][1]);
+      for (let i = 1; i <= Math.ceil(c); i++) { const f = Math.min(1, c - (i - 1)), [x0, y0] = zig[i - 1], [x1, y1] = zig[i]; ctx.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f); }
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
+  const p = t - 1350, pop = sm(p / 350), squ = p < 500 ? Math.sin(p / 500 * Math.PI) : 0;
+  drawFigure(ctx, baby, Object.assign({ dy: (1 - pop) * 28, sx: 1 + squ * .12, sy: 1 - squ * .1 }, p > 1500 ? hopPose(p - 1500) : {}), hi);
+  const fb = 1 - sm((p - 700) / 500); // untere Schale vor dem Baby, verblasst dann
+  if (fb > 0) { ctx.globalAlpha = fb; half(false, egg.pet); ctx.globalAlpha = 1; }
+  const q = p / 700; // Deckel fliegt hoch und zur Seite
+  if (q < 1) {
+    ctx.globalAlpha = 1 - sm(q); ctx.save();
+    ctx.translate(30 * q, -110 * q + 140 * q * q); ctx.translate(gx, zy); ctx.rotate(q * 1.4); ctx.translate(-gx, -zy);
+    half(true, egg.pet); ctx.restore(); ctx.globalAlpha = 1;
+  }
+  if (p < 700) for (let i = 0; i < 8; i++) {
+    const w = i / 8 * Math.PI * 2;
+    plus(ctx, gx + Math.cos(w) * (eb.w * .45 + p * .1), zy + Math.sin(w) * (eb.h * .4 + p * .08), hi ? 3 : 6, i % 2 ? '#FFD86B' : '#7BE0A0', 1 - p / 700);
+  }
+}
+
+/* ---------- Reaktionen: Antippen, Jubel, kleine Momente ---------- */
+// Einmal tippen: Moro duckt sich, hüpft hoch, landet weich, danach steigt ein Herz auf.
+// Dreimal in einer Sekunde: Moro kichert und wackelt, kleine Herzen fliegen seitlich weg.
+// Ei und Pause wackeln nur kurz; am Ruhetag bleibt die Ruhe-Szene, und nur ein Herz steigt auf.
+// Nach dem Eintragen jubelt Moro passend zur Sportart; ab und zu gähnt Moro, niest oder bekommt Besuch (MOVES).
+// Gezeichnet wird in 240er-Koordinaten, solange eine Reaktion läuft per requestAnimationFrame.
+const tap = { kind: null, move: null, at: 0, taps: [], raf: 0 };
+const TAP_MS = { hop: 1650, giggle: 1600, wobble: 700, heart: 1300 };
+const tapDur = () => tap.kind === 'move' ? MOVE_MS[tap.move] : TAP_MS[tap.kind];
+const tapActive = now => !!tap.kind && now - tap.at < tapDur();
+const HEART_BIG = [[1, 0, 2], [4, 0, 2], [0, 1, 7], [0, 2, 7], [1, 3, 5], [2, 4, 3], [3, 5, 1]], HEART_SMALL = [[1, 0, 1], [3, 0, 1], [0, 1, 5], [1, 2, 3], [2, 3, 1]];
+function tapHeart(ctx, x, y, a, u) { // Retro bekommt das kleine 5er-Herz, sonst wirkt es riesig
+  ctx.globalAlpha = Math.max(0, Math.min(1, a)); ctx.fillStyle = '#FF7FA0';
+  x = Math.round(x / u) * u; y = Math.round(y / u) * u;
+  const H = isHi() ? HEART_BIG : HEART_SMALL, half = H === HEART_BIG ? 3 : 2;
+  H.forEach(([dx, dy, w]) => ctx.fillRect(x + (dx - half) * u, y + dy * u, w * u, u));
+  ctx.globalAlpha = 1;
+}
+// Figur ohne Dinge am Boden und die Dinge am Boden extra (die hüpfen nicht mit), beide auf 240 × 240.
+// Der Umriss kommt immer vom neutralen Gesicht, damit Freude-Funkeln und gehobene Arme nichts verschieben.
+const layerCache = new Map();
+function tapLayers(L) {
+  const hi = isHi(), n = hi ? HI_N : 40, key = (hi ? 'h' : 'r') + JSON.stringify(L);
+  if (layerCache.has(key)) return layerCache.get(key);
+  const draw = hi ? drawPetHi : drawPet;
+  const mkc = s => { const c = document.createElement('canvas'); c.width = c.height = s; return c; };
+  const full = mkc(n), pet = mkc(n);
+  draw(full.getContext('2d'), L, 2); // f = 2: kein Blinzeln, kein Zwischenhüpfer
+  draw(pet.getContext('2d'), Object.assign({}, L, { items: L.items.filter(i => !REST_DROP.includes(i)) }), 2);
+  const a = full.getContext('2d').getImageData(0, 0, n, n), b = pet.getContext('2d').getImageData(0, 0, n, n).data;
+  for (let i = 0; i < b.length; i += 4) if (a.data[i] === b[i] && a.data[i + 1] === b[i + 1] && a.data[i + 2] === b[i + 2] && a.data[i + 3] === b[i + 3]) a.data[i + 3] = 0;
+  full.getContext('2d').putImageData(a, 0, 0);
+  const up = c => { if (hi) return c; const o = mkc(RS), x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, RS, RS); return o; };
+  const v = { pet: up(pet), ground: up(full) };
+  v.b = L.face === 'neutral' ? spriteBox(v.pet, 'tap' + key) : tapLayers(Object.assign({}, L, { face: 'neutral' })).b;
+  if (layerCache.size > 24) layerCache.clear();
+  layerCache.set(key, v); return v;
+}
+const layFor = L => face => tapLayers(Object.assign({}, L, { face, noShadow: true }));
+function drawTap(cv, L, now) {
+  const hi = isHi(), age = now - tap.at;
+  if (tap.kind === 'heart') { // Ruhetag: Szene läuft weiter, ein Herz steigt auf
+    drawRest(cv, L, reduce ? 1200 : now);
+    const p = age / TAP_MS.heart, s = hi ? 1 : 1 / 6;
+    tapHeart(cv.getContext('2d'), 150 * s, (70 - p * 46) * s, p > .6 ? (1 - p) / .4 : Math.min(1, p * 6), hi ? 3 : 1);
+    return;
+  }
+  const n = hi ? HI_N : 40;
+  if (cv.width !== n) { cv.width = n; cv.height = n; }
+  const ctx = (hi ? cv : restComp).getContext('2d');
+  ctx.clearRect(0, 0, RS, RS); ctx.imageSmoothingEnabled = false;
+  if (tap.kind === 'move') MOVES[tap.move](ctx, age, layFor(L), hi, L);
+  else {
+    const T = layFor(L)(tap.kind === 'wobble' ? L.face : 'happy'), b = T.b;
+    const pose = {};
+    if (!reduce) {
+      if (tap.kind === 'hop') Object.assign(pose, hopPose(age));
+      else if (tap.kind === 'giggle') { const fade = 1 - age / TAP_MS.giggle; pose.rot = Math.sin(age / 1000 * Math.PI * 12) * .1 * fade; pose.dy = -Math.abs(Math.sin(age / 1000 * Math.PI * 6)) * 8 * fade; }
+      else { const fade = 1 - age / TAP_MS.wobble; pose.rot = Math.sin(age / 1000 * Math.PI * 10) * .12 * fade; }
+    }
+    drawFigure(ctx, T, pose, hi);
+    const u = hi ? 3 : 6, fadeA = p => p > .6 ? (1 - p) / .4 : Math.min(1, p * 6);
+    if (tap.kind === 'hop' && age >= 420) { const p = Math.min(1, (age - 420) / 1200); tapHeart(ctx, b.cx, b.y0 - 8 - p * 46, fadeA(p), u); } // erst nach dem höchsten Punkt, nicht durchs Gesicht
+    if (tap.kind === 'giggle') [[0, -1], [260, 1], [520, -1], [780, 1]].forEach(([s, side]) => {
+      const a = age - s; if (a < 0 || a > 900) return;
+      const p = a / 900; tapHeart(ctx, b.cx + side * (b.w * .45 + p * 26), b.y0 + 10 - p * 50, p > .6 ? (1 - p) / .4 : 1, hi ? 2 : 6);
+    });
+  }
+  if (!hi) { const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 40, 40); c.drawImage(restComp, 0, 0, 40, 40); }
+}
+function startTap(kind, move = null) { tap.kind = kind; tap.move = move; tap.at = performance.now(); if (!tap.raf) tap.raf = requestAnimationFrame(tapFrame); }
+function tapFrame(now) {
+  tap.raf = 0;
+  if (!D || !tapActive(now)) { tap.kind = null; tick(); return; }
+  drawTap($('petCanvas'), look(D.stage), now);
+  tap.raf = requestAnimationFrame(tapFrame);
+}
+$('petCanvas').addEventListener('pointerdown', () => {
+  if (!D) return;
+  const now = performance.now();
+  if (isRestPose()) return startTap('heart');
+  if (D.stage === 0 || D.mood.key === 'pause') return startTap('wobble');
+  tap.taps = tap.taps.filter(t => now - t < 1000); tap.taps.push(now);
+  if (tap.taps.length >= 3) { tap.taps = []; startTap('giggle'); }
+  else if (!(tap.kind === 'giggle' && tapActive(now))) startTap('hop');
+});
+// Jubel nach dem Eintragen: passend zur Sportart (Ei wackelt, am Ruhetag nach Nachtragen nur ein Herz)
+function cheer(type) {
+  if (!D || reduce) return;
+  if (D.stage === 0) startTap('wobble');
+  else if (isRestPose()) startTap('heart');
+  else if (MOVES[type]) startTap('move', type);
+}
+// Kleine Momente zwischendurch: alle 25 bis 55 Sekunden, nur wenn Moro wach und gut drauf ist
+let idleAt = 0;
+function maybeIdle(now) {
+  if (reduce || !D || D.stage < 1 || tap.kind || state.paused || !['proud', 'ready', 'restless', 'thirsty'].includes(D.mood.key)) { idleAt = 0; return; }
+  if (!idleAt) { idleAt = now + 15000 + Math.random() * 20000; return; }
+  if (now < idleAt) return;
+  idleAt = now + 25000 + Math.random() * 30000;
+  startTap('move', IDLE_MOVES[Math.floor(Math.random() * IDLE_MOVES.length)]);
+}
+// Schlüpfen im Fenster „… ist geschlüpft!“
+let hatchAt = 0, hatchRaf = 0;
+const hatchActive = now => hatchAt && now - hatchAt < HATCH_MS;
+function startHatch() { if (reduce) return; hatchAt = performance.now(); if (!hatchRaf) hatchRaf = requestAnimationFrame(hatchFrame); }
+function hatchFrame(now) {
+  hatchRaf = 0;
+  if (!D || !evoOpen || !hatchActive(now)) { hatchAt = 0; tick(); return; }
+  const cv = $('evoCanvas'), hi = isHi(), n = hi ? HI_N : 40;
+  if (cv.width !== n) { cv.width = n; cv.height = n; }
+  const ctx = (hi ? cv : restComp).getContext('2d');
+  ctx.clearRect(0, 0, RS, RS); ctx.imageSmoothingEnabled = false;
+  drawHatch(ctx, now - hatchAt, tapLayers(look(0, { face: 'neutral', count: 0, items: [], noShadow: true })), layFor(look(1))('happy'), hi);
+  if (!hi) { const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 40, 40); c.drawImage(restComp, 0, 0, 40, 40); }
+  hatchRaf = requestAnimationFrame(hatchFrame);
+}
+
 /* ---------- Animation ---------- */
 let frame = 0;
 const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2702,12 +3043,13 @@ function tick(auto = false) {
     if (k === lastStill) return;
     lastStill = k;
   }
-  const f = reduce ? 1 : frame++;
-  if (pet) {
-    if (isRestPose()) drawRest($('petCanvas'), L, reduce ? 1200 : performance.now());
+  const f = reduce ? 1 : frame++, now = performance.now();
+  if (auto && pet && !evoOpen) maybeIdle(now);
+  if (pet && !tapActive(now)) { // während einer Reaktion zeichnet tapFrame
+    if (isRestPose()) drawRest($('petCanvas'), L, reduce ? 1200 : now);
     else drawInto($('petCanvas'), L, f);
   }
-  if (evoOpen) drawInto($('evoCanvas'), look(D.stage, { face: 'happy' }), f);
+  if (evoOpen && !hatchActive(now)) drawInto($('evoCanvas'), look(D.stage, { face: 'happy' }), f); // beim Schlüpfen zeichnet hatchFrame
 }
 
 // Aufgeräumte Ansicht über den Link-Anker #clean
